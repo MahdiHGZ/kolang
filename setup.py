@@ -29,7 +29,7 @@ def get_description():
 
 requirements = [
     "pyspark == 2.4.3",
-
+    "bil @ git+https://git.cafebazaar.ir/divar/data/bil.git@master#egg=bil",
 ]
 
 setuptools.setup(
