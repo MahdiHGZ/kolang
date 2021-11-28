@@ -21,13 +21,14 @@ def percent(col: Union[Column, str],
             partition_by: Union[Column, str] = None,
             r: int = 2) -> Column:
     """
-    returns the percent of the value.
+        returns the percent of the value.
     .. versionadded:: 0.1.0
+
     Parameters
     ----------
-    col : str, :class:`Column`
+    col : str or :class:`Column`
         column containing number values
-    partition_by : str, :class:`Column`, optional
+    partition_by : str or :class:`Column`, optional
         partition of data.
     r : int, optional
         rounding a final result base on this (default = 2)
@@ -54,8 +55,9 @@ def percent(col: Union[Column, str],
 
 def median(col: str) -> Column:
     """
-    Aggregate function: returns the median of the values in a group.
+       Aggregate function: returns the median of the values in a group.
     .. versionadded:: 0.1.0
+
     Parameters
     ----------
     col : str
@@ -78,11 +80,12 @@ def median(col: str) -> Column:
 
 def str_array_to_array(col: Union[Column, str]) -> Column:
     """
-        convert str_array to pysaprk array.
+       convert str_array to pysaprk array.
     .. versionadded:: 0.1.0
+
     Parameters
     ----------
-    col : str, :class:`Column`
+    col : str or :class:`Column`
         column containing str_array.
 
     Examples
@@ -120,7 +123,7 @@ def number_normalizer(col: Union[Column, str]) -> Column:
     .. versionadded:: 0.1.0
     Parameters
     ----------
-    col : str, :class:`Column`
+    col : str or :class:`Column`
         column containing string.
 
     Examples
@@ -160,17 +163,17 @@ def cumulative_sum(col: Union[Column, str],
     .. versionadded:: 0.1.0
     Parameters
     ----------
-    col : str, :class:`Column`
+    col : str or :class:`Column`
         column containing string.
-    on_col : str, :class:`Column`
+    on_col : str or :class:`Column`
         order data base on this column.
-    ascending : str, :class:`Column`, optional
+    ascending : str or :class:`Column`, optional
         type of ordering is ascending. (default = True)
-    partition_by : str, :class:`Column`, optional
+    partition_by : str or :class:`Column`, optional
         partition of data.
     Examples
     --------
-    >>> df = spark.range(0, 5).toDF('id').withColumn('value', F.lit(2))
+    >>> df = spark.range(0, 5).toDF('id').withColumn('value', F.lit(3))
     >>> df.withColumn('cumulative_sum', cumulative_sum('value','id'))
     >>> df.show()
     +---+-----+--------------+
@@ -189,3 +192,37 @@ def cumulative_sum(col: Union[Column, str],
     else:
         w = Window.partitionBy(partition_by).orderBy(on_col).rangeBetween(Window.unboundedPreceding, 0)
     return F.sum(col).over(w)
+
+
+def text_cleaner(col: Union[Column, str],
+                 accept: str = "") -> Column:
+    """
+       clean text from emoji and other symbols.(just accept numbers and english and persian letters)
+    .. versionadded:: 0.1.0
+    Parameters
+    ----------
+    col: str or :class:`Column`
+        column containing string.
+    accept : str, optional
+        string containing char you want to accept. (default = "")
+
+    Examples
+    --------
+    >>> df = spark.createDataFrame([("sjkdf sdk❤️❤️fskd j",),
+    >>>                             ("۷7۲ 67 gh^&g    df",),
+    >>>                             ("۱a%%!. سلام ab😂😂8()",),],
+    >>>                             ['string'])
+    >>> df = df.withColumn('clean_str', text_cleaner('string'))
+    >>> df.show()
+    +--------------------+----------------+
+    |              string|       clean_str|
+    +--------------------+----------------+
+    | sjkdf sdk❤️❤️fskd j|sjkdf sdk fskd j|
+    |  ۷7۲ 67 gh^&g    df|  772 67 gh g df|
+    |۱a%%!. سلام ab😂?...|   1a سلام ab 8 |
+    +--------------------+----------------+
+    """
+    col = number_normalizer(col)
+    col = F.regexp_replace(col, f"[^a-zآ-یA-Z0-9 {accept}]", " ")
+    col = F.regexp_replace(col, " {2,}", " ")
+    return col

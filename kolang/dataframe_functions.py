@@ -12,6 +12,7 @@ from typing import (
     ValuesView,
 )
 
+import pyspark.sql.functions as F
 from pyspark.sql.column import Column
 from pyspark.sql.dataframe import DataFrame
 
@@ -28,11 +29,11 @@ def unpivot(df: DataFrame,
     ----------
     df : :class:`DataFrame`
         your DataFrame.
-    on_columns : array of str
+    on_columns : list of str
         array contain name of columns you need to unpivot.
-    in_column : str, :class:`Column`, optional
+    in_column : str or :class:`Column`
         name of column will contain your unpivot columns.
-    value_column : str, optional
+    value_column : str , optional
         name of column will contain values. (default = 'value')
     ignore_null : bool, optional
         if be True filter the rows with null value.(default = True)
@@ -94,4 +95,3 @@ def unpivot(df: DataFrame,
     if ignore_null:
         return unpivot_df.where(F.col(value_column).isNotNull())
     return unpivot_df
-
