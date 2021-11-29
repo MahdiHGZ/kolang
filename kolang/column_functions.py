@@ -26,11 +26,11 @@ def percent(col: Union[Column, str],
 
     Parameters
     ----------
-    col : str or :class:`Column`
+    col: str or :class:`Column`
         column containing number values
-    partition_by : str or :class:`Column`, optional
+    partition_by: str or :class:`Column`, optional
         partition of data.
-    r : int, optional
+    r: int, optional
         rounding a final result base on this (default = 2)
 
     Examples
@@ -60,7 +60,7 @@ def median(col: str) -> Column:
 
     Parameters
     ----------
-    col : str
+    col: str
         column containing values.
 
     Examples
@@ -85,7 +85,7 @@ def str_array_to_array(col: Union[Column, str]) -> Column:
 
     Parameters
     ----------
-    col : str or :class:`Column`
+    col: str or :class:`Column`
         column containing str_array.
 
     Examples
@@ -106,7 +106,6 @@ def str_array_to_array(col: Union[Column, str]) -> Column:
     |                   a|                 [a]|
     |                null|                null|
     +--------------------+--------------------+
-
     root
      |-- str_array: string (nullable = true)
      |-- array: array (nullable = true)
@@ -123,7 +122,7 @@ def number_normalizer(col: Union[Column, str]) -> Column:
     .. versionadded:: 0.1.0
     Parameters
     ----------
-    col : str or :class:`Column`
+    col: str or :class:`Column`
         column containing string.
 
     Examples
@@ -163,13 +162,13 @@ def cumulative_sum(col: Union[Column, str],
     .. versionadded:: 0.1.0
     Parameters
     ----------
-    col : str or :class:`Column`
+    col: str or :class:`Column`
         column containing string.
-    on_col : str or :class:`Column`
+    on_col: str or :class:`Column`
         order data base on this column.
-    ascending : str or :class:`Column`, optional
+    ascending: str or :class:`Column`, optional
         type of ordering is ascending. (default = True)
-    partition_by : str or :class:`Column`, optional
+    partition_by: str or :class:`Column`, optional
         partition of data.
     Examples
     --------
@@ -203,7 +202,7 @@ def text_cleaner(col: Union[Column, str],
     ----------
     col: str or :class:`Column`
         column containing string.
-    accept : str, optional
+    accept: str, optional
         string containing char you want to accept. (default = "")
 
     Examples

@@ -27,15 +27,15 @@ def unpivot(df: DataFrame,
     .. versionadded:: 0.1.0
     Parameters
     ----------
-    df : :class:`DataFrame`
+    df: :class:`DataFrame`
         your DataFrame.
-    on_columns : list of str
+    on_columns: list of str
         array contain name of columns you need to unpivot.
-    in_column : str or :class:`Column`
+    in_column: str or :class:`Column`
         name of column will contain your unpivot columns.
-    value_column : str , optional
+    value_column: str , optional
         name of column will contain values. (default = 'value')
-    ignore_null : bool, optional
+    ignore_null: bool, optional
         if be True filter the rows with null value.(default = True)
     Examples
     --------
