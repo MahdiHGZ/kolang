@@ -46,11 +46,14 @@ def percent(col: Union[Column, str],
     |    4|   40.0|
     +-----+-------+
     """
+    if isinstance(col, str):
+        col = F.col(col)
+
     if partition_by is None:
         w = Window.partitionBy()
     else:
         w = Window.partitionBy(partition_by)
-    return F.round(100 * F.col(col) / F.sum(col).over(w), r)
+    return F.round(100 * col / F.sum(col).over(w), r)
 
 
 def median(col: str) -> Column:
