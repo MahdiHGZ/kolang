@@ -228,3 +228,13 @@ def text_cleaner(col: Union[Column, str],
     col = F.regexp_replace(col, f"[^a-zآ-یA-Z0-9 {accept}]", " ")
     col = F.regexp_replace(col, " {2,}", " ")
     return col
+
+def binner(col: Union[Column, str],
+           scale: int = 10,
+           floor: bool = True) -> Column:
+    if isinstance(col, str):
+        col = F.col(col)
+    if floor:
+        return F.floor(col / scale) * scale
+    else:
+        return F.round(col / scale, 0) * scale
