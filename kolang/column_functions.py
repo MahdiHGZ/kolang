@@ -17,7 +17,7 @@ from pyspark.sql.window import Window
 from pyspark.sql.column import Column
 
 
-def percent(col: Union[Column, str],
+def percent(col: Union[Column, str] = 'count',
             partition_by: Union[Column, str] = None,
             r: int = 2) -> Column:
     """
@@ -26,8 +26,8 @@ def percent(col: Union[Column, str],
 
     Parameters
     ----------
-    col: str or :class:`Column`
-        column containing number values
+    col: str or :class:`Column`, optional
+        column containing number values (default = 'count')
     partition_by: str or :class:`Column`, optional
         partition of data.
     r: int, optional
@@ -229,12 +229,58 @@ def text_cleaner(col: Union[Column, str],
     col = F.regexp_replace(col, " {2,}", " ")
     return col
 
-def binner(col: Union[Column, str],
-           scale: int = 10,
-           floor: bool = True) -> Column:
+
+def bin(col: Union[Column, str],
+        scale: int = 10,
+        flooring: bool = True) -> Column:
+    """
+
+    .. versionadded:: 0.2.0
+    Parameters
+    ----------
+    col: str or :class:`Column`
+        column containing number.
+    scale: int, optional
+        bin size. (default = 10)
+    flooring: bool, optional
+        if True uses floor else uses round. (default = True)
+
+    """
     if isinstance(col, str):
         col = F.col(col)
     if floor:
         return F.floor(col / scale) * scale
     else:
         return F.round(col / scale, 0) * scale
+
+
+def session_id(device_id: Union[Column, str] = 'device_id',
+               created_at: Union[Column, str] = 'created_at',
+               session_time: int = 30,
+               ) -> Column:
+    """
+        returns session_id for actions.
+    .. versionadded:: 0.2.0
+    Parameters
+    ----------
+    device_id: str or :class:`Column`, optional
+        column containing user unique key(default = 'device_id')
+    created_at: str or :class:`Column`, optional
+        column containing long int time.(millisecond)(default = 'created_at')
+    session_time: int, optional
+        max time of session (minute)(default = 30)
+
+    """
+    session_time = session_time * 60000
+    if isinstance(device_id, str):
+        device_id = F.col(device_id)
+    if isinstance(created_at, str):
+        created_at = F.col(created_at)
+
+    session_window = Window.partitionBy(device_id).orderBy(created_at)
+
+    col = F.lag(created_at).over(session_window)
+    col = F.when((created_at - col > session_time) | col.isNull(), F.monotonically_increasing_id())
+    col = F.when(col.isNull(), F.last(col, ignorenulls=True).over(session_window)).otherwise(col)
+
+    return col
