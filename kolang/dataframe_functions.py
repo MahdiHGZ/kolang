@@ -13,8 +13,14 @@ from typing import (
 )
 
 import pyspark.sql.functions as F
+import pyspark.sql.types as T
 from pyspark.sql.column import Column
 from pyspark.sql.dataframe import DataFrame
+from pyspark.sql import SparkSession
+
+import pandas as pd
+
+spark = SparkSession.builder.getOrCreate()
 
 
 def unpivot(df: DataFrame,
@@ -95,3 +101,58 @@ def unpivot(df: DataFrame,
     if ignore_null:
         return unpivot_df.where(F.col(value_column).isNotNull())
     return unpivot_df
+
+
+def pandas_to_spark(df: pd.DataFrame):
+    """
+        Given pandas dataframe, it will return a spark's dataframe.
+    .. versionadded:: 0.3.0
+    Parameters
+    ----------
+    df: :class:`Pandas DataFrame`
+    """
+    try:
+        return spark.createDataFrame(df)
+    except:
+        def equivalent_type(type: str):
+            if type == 'datetime64[ns]':
+                return T.TimestampType()
+            elif type == 'int64':
+                return T.LongType()
+            elif type == 'int32':
+                return T.IntegerType()
+            elif type == 'float64':
+                return T.FloatType()
+            else:
+                return T.StringType()
+
+        def define_structure(string, format_type):
+            try:
+                typo = equivalent_type(format_type)
+            except:
+                typo = T.StringType()
+            return StructField(string, typo)
+
+        columns = list(df.columns)
+        types = list(df.dtypes)
+        struct_list = []
+        for column, typo in zip(columns, types):
+            struct_list.append(define_structure(column, typo))
+        p_schema = T.StructType(struct_list)
+        return spark.createDataFrame(df, p_schema)
+
+
+def transpose(df: DataFrame,
+              col: str):
+    """
+        transpose your DataFrame.
+        Warnings: Dont use it for big DataFrames!!
+    .. versionadded:: 0.3.0
+    Parameters
+    ----------
+    df: :class:`DataFrame`
+    col: str
+        name of col you want transpose base on it.
+    """
+    pandas_df = df.toPandas().set_index(col).transpose().reset_index(level=0, inplace=False)
+    return pandas_to_spark(pandas_df)
