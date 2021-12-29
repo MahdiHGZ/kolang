@@ -284,3 +284,155 @@ def session_id(device_id: Union[Column, str] = 'device_id',
     col = F.when(col.isNull(), F.last(col, ignorenulls=True).over(session_window)).otherwise(col)
 
     return col
+
+
+def cond_count(cond: Union[Column, str]):
+    """
+        Aggregate function: returns count of rows how accept the condition.
+    .. versionadded:: 0.3.0
+    Parameters
+    ----------
+    cond: str or :class:`Column`
+        your condition.
+    """
+    if isinstance(cond, str):
+        cond = F.expr(cond)
+    return F.count(F.when(cond, True))
+
+
+def persian_number(col: Union[Column, str],
+                   format: str = '%d'):
+    """
+        convert english number to persian number(string)
+    .. versionadded:: 0.3.0
+    Parameters
+    ----------
+    col: str or :class:`Column`
+        column containing english number.
+    format: str, optional
+        your final result format. (default = '%d')
+    """
+    col = F.format_string(format, col)
+    col = F.translate(col, "0123456789", "۰۱۲۳۴۵۶۷۸۹")
+    return col
+
+
+def jalali_date(col: Union[Column, str],
+                format: str = '%Y-%m-%d'):
+    """
+        convert gregorian date to jalali date.
+    .. versionadded:: 0.3.0
+    Parameters
+    ----------
+    col: str or :class:`Column`
+        column containing gregorian date.
+    format: str, optional
+        your final result format. (default = '%Y-%m-%d')
+        `%d`: Day of the month (29)
+        `%fd`: Day of the month with Persian number (۲۹)
+        `%m`: Month (03)
+        `%fm`: Month with Persian number (۰۳)
+        `%y`: Year without century (00)
+        `%fy`: Year without century with Persian number (۰۰)
+        `%Y`: Year with century (1400)
+        `%fY`: Year with century and Persian number (۱۴۰۰)
+        `%A`:  Weekday (شنبه)
+        `%B`: Month name (خرداد)
+        `%C`: Season name (بهار)
+    """
+    j_days_in_month_cum = [0, 31, 62, 93, 124, 155, 186, 216, 246, 276, 306, 336]
+
+    j_month_name = [
+        'فروردین',
+        'اردیبهشت',
+        'خرداد',
+        'تیر',
+        'مرداد',
+        'شهریور',
+        'مهر',
+        'آبان',
+        'آذر',
+        'دی',
+        'بهمن',
+        'اسفند'
+    ]
+
+    j_week_name = [
+        'شنبه',
+        'یکشنبه',
+        'دوشنبه',
+        'سه شنبه',
+        'چهارشنبه',
+        'پنجشنبه',
+        'جمعه',
+    ]
+
+    j_season_name = [
+        'بهار',
+        'تابستان',
+        'پاییز',
+        'زمستان',
+    ]
+
+    gy = F.year(col) - 1600
+    gdy = F.dayofyear(col) - 1
+    gwd = F.dayofweek(col)
+
+    g_day_no = 365 * gy + F.floor((gy + 3) / 4) - F.floor((gy + 99) / 100) + F.floor((gy + 399) / 400)
+    g_day_no = g_day_no + F.dayofyear(col) - 1
+
+    j_day_no = g_day_no - 79
+
+    j_np = F.floor(j_day_no / 12053)
+    j_day_no = j_day_no % 12053
+    jy = 979 + 33 * j_np + 4 * F.floor(j_day_no / 1461)
+
+    j_day_no = j_day_no % 1461
+
+    x = j_day_no
+    jy = F.when(j_day_no >= 366, jy + F.floor((j_day_no - 1) / 365)).otherwise(jy).alias('jy')
+    j_day_no = F.when(j_day_no >= 366, (j_day_no - 1) % 365).otherwise(j_day_no).alias('y')
+
+    jm = F.when(j_day_no < j_days_in_month_cum[1], 1)
+    for i in range(2, 12):
+        jm = jm.when(j_day_no < j_days_in_month_cum[i], i)
+    jm = jm.otherwise(12)
+
+    j_days_in_month_cum = F.array([F.lit(element) for element in j_days_in_month_cum])
+    jd = j_day_no - j_days_in_month_cum[jm - 1] + 1
+
+    import re
+    var_map = {
+        '%d': jd,
+        '%m': jm,
+        '%y': (jy % 100),
+        '%Y': jy,
+        '%B': F.array([F.lit(element) for element in j_month_name])[jm - 1],
+        '%A': F.array([F.lit(element) for element in j_week_name])[gwd % 7],
+        '%C': F.array([F.lit(element) for element in j_season_name])[F.floor((jm - 1) / 3)],
+        '%fd': persian_number(jd, '%02d'),
+        '%fm': persian_number(jm, '%02d'),
+        '%fy': persian_number((jy % 100), '%02d'),
+        '%fY': persian_number(jy, '%d'),
+    }
+    str_map = {
+        '%d': '%02d',
+        '%m': '%02d',
+        '%y': '%02d',
+        '%Y': '%d',
+        '%B': '%s',
+        '%A': '%s',
+        '%C': '%s',
+        '%fd': '%s',
+        '%fm': '%s',
+        '%fy': '%s',
+        '%fY': '%s',
+    }
+
+    vars = re.findall('|'.join(var_map.keys()), format)
+    vars = list(map(lambda v: var_map[v], vars))
+
+    for key, var in str_map.items():
+        format = format.replace(key, var)
+
+    return F.format_string(format, *vars)
