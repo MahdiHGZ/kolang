@@ -20,8 +20,6 @@ from pyspark.sql import SparkSession
 
 import pandas as pd
 
-spark = SparkSession.builder.getOrCreate()
-
 
 def unpivot(df: DataFrame,
             on_columns: List[str],
@@ -111,6 +109,7 @@ def pandas_to_spark(df: pd.DataFrame):
     ----------
     df: :class:`Pandas DataFrame`
     """
+    spark = SparkSession.builder.getOrCreate()
     try:
         return spark.createDataFrame(df)
     except:
