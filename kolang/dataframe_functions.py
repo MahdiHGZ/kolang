@@ -150,6 +150,7 @@ def transpose(df: DataFrame,
     Parameters
     ----------
     df: :class:`DataFrame`
+        your dataframe.
     col: str
         name of col you want transpose base on it.
     """
