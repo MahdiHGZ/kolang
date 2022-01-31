@@ -248,7 +248,7 @@ def bin(col: Union[Column, str],
     """
     if isinstance(col, str):
         col = F.col(col)
-    if floor:
+    if flooring:
         return F.floor(col / scale) * scale
     else:
         return F.round(col / scale, 0) * scale
