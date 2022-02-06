@@ -130,7 +130,7 @@ def pandas_to_spark(df: pd.DataFrame):
                 typo = equivalent_type(format_type)
             except:
                 typo = T.StringType()
-            return StructField(string, typo)
+            return T.StructField(string, typo)
 
         columns = list(df.columns)
         types = list(df.dtypes)
