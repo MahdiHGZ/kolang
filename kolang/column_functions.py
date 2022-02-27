@@ -339,6 +339,20 @@ def jalali_date(col: Union[Column, str],
         `%A`:  Weekday (شنبه)
         `%B`: Month name (خرداد)
         `%C`: Season name (بهار)
+    Examples
+    --------
+    >>> df = (
+    ...     spark.createDataFrame([('2021-08-12',)], ['date'])
+    ...         .withColumn('j-date-sample1', jalali_date('date'))
+    ...         .withColumn('j-date-sample2', jalali_date('date', '%Y-%m'))
+    ...         .withColumn('j-date-sample3', jalali_date('date', 'month:%m,day:%d'))
+    ... )
+    >>> df.show()
+    +----------+--------------+--------------+---------------+
+    |      date|j-date-sample1|j-date-sample2| j-date-sample3|
+    +----------+--------------+--------------+---------------+
+    |2021-08-12|    1400-05-21|       1400-05|month:05,day:21|
+    +----------+--------------+--------------+---------------+
     """
     j_days_in_month_cum = [0, 31, 62, 93, 124, 155, 186, 216, 246, 276, 306, 336]
 

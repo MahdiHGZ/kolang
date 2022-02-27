@@ -28,7 +28,8 @@ def get_description():
 
 
 requirements = [
-    "bil @ git+https://git.cafebazaar.ir/divar/data/bil.git@master#egg=bil",
+    "pandas ~= 0.24.2",
+    # "pyspark ~= 2.4.3",
 ]
 
 setuptools.setup(
