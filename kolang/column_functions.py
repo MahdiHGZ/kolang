@@ -450,3 +450,18 @@ def jalali_date(col: Union[Column, str],
         format = format.replace(key, var)
 
     return F.format_string(format, *vars)
+
+
+def sum_columns(cols: List[str]) -> Column:
+    """
+        returns sum of your columns.
+    .. versionadded:: 0.4.0
+    Parameters
+    ----------
+    cols: list of str
+        list of columns name you want to sum.
+    """
+    res = F.lit(0)
+    for col in cols:
+        res = res + F.col(col)
+    return res.alias(f"sum_columns({','.join(cols)})")
