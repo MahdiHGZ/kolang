@@ -12,6 +12,7 @@ from typing import (
     ValuesView,
 )
 
+import pyspark
 import pyspark.sql.functions as F
 import pyspark.sql.types as T
 from pyspark.sql.column import Column
@@ -101,7 +102,7 @@ def unpivot(df: DataFrame,
     return unpivot_df
 
 
-def pandas_to_spark(df: pd.DataFrame):
+def pandas_to_spark(df: pd.DataFrame) -> DataFrame:
     """
         Given pandas dataframe, it will return a spark's dataframe.
     .. versionadded:: 0.3.0
@@ -142,7 +143,7 @@ def pandas_to_spark(df: pd.DataFrame):
 
 
 def transpose(df: DataFrame,
-              col: str):
+              col: str) -> DataFrame:
     """
         transpose your DataFrame.
         Warnings: Dont use it for big DataFrames!!
@@ -156,3 +157,60 @@ def transpose(df: DataFrame,
     """
     pandas_df = df.toPandas().set_index(col).transpose().reset_index(level=0, inplace=False)
     return pandas_to_spark(pandas_df)
+
+
+def safe_union(df1: DataFrame, df2: DataFrame) -> DataFrame:
+    """
+        union your dataframes with different columns.
+    .. versionadded:: 0.4.0
+    Parameters
+    ----------
+    df1: :class:`DataFrame`
+    df2: :class:`DataFrame`
+    Examples
+    --------
+    >>> df1 = spark.createDataFrame([(1, "foo", 4), (2, "bar", 4), ], ["col1", "col2", "col4"])
+    >>> df2 = spark.createDataFrame([(3, "foo", "6"), (4, "bar", "4"), ], ["col1", "col3", "col4"])
+    >>> df = safe_union(df1, df2)
+    >>> df.show()
+    +----+----+----+----+
+    |col1|col4|col2|col3|
+    +----+----+----+----+
+    |   1|   4| foo|null|
+    |   2|   4| bar|null|
+    |   3|   6|null| foo|
+    |   4|   4|null| bar|
+    +----+----+----+----+
+    >>> df.printSchema()
+    root
+     |-- col1: long (nullable = true)
+     |-- col4: string (nullable = true)
+     |-- col2: string (nullable = true)
+     |-- col3: string (nullable = true)
+
+
+    """
+    columns1 = set(df1.columns)
+    columns2 = set(df2.columns)
+    df1 = df1.select(*columns1, *[F.lit(None).alias(col) for col in (columns2 - columns1)])
+    df2 = df2.select(*columns2, *[F.lit(None).alias(col) for col in (columns1 - columns2)])
+
+    try:
+        return df1.unionByName(df2)
+    except pyspark.sql.utils.AnalysisException as e:
+        common_columns = columns1.intersection(columns2)
+        incompatible_data_types = {
+            ('boolean', 'string'): 'string',
+            ('array<string>', 'string'): 'string',
+        }
+        incompatible_columns = list()
+        for col in common_columns:
+            for key, val in incompatible_data_types.items():
+                if {df1.schema[col].dataType.simpleString(), df2.schema[col].dataType.simpleString()} == set(key):
+                    df1 = df1.withColumn(col, F.col(col).cast(val))
+                    df2 = df2.withColumn(col, F.col(col).cast(val))
+                    incompatible_columns.append(col)
+        if len(incompatible_columns) > 0:
+            print(
+                f"Warning: safe_union function handle incompatible data types of this columns: {', '.join(incompatible_columns)}")
+        return df1.unionByName(df2)
