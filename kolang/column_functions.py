@@ -460,6 +460,29 @@ def sum_columns(cols: List[str]) -> Column:
     ----------
     cols: list of str
         list of columns name you want to sum.
+    Examples
+    --------
+    >>> df = (spark.range(0, 5).toDF('a')
+    ...         .withColumn('b', F.lit(3))
+    ...         .withColumn('c', F.col('a')*2)
+    ...         .withColumn('d', F.lit(123))
+    ...         .withColumn('e', F.col('a') + 2)
+    ...         .withColumn('f', F.col('a')*3 + 2)
+    ...         .withColumn('g', F.lit(12))
+    ...         .withColumn('h', F.lit(-100))
+    ...         .withColumn('i', F.col('a') * -12)
+    ...         )
+    >>> df = df.withColumn('sum',sum_columns(['a','b','c','d','e','f','g','h','i']))
+    >>> df.show()
+    +---+---+---+---+---+---+---+----+---+---+
+    |  a|  b|  c|  d|  e|  f|  g|   h|  i|sum|
+    +---+---+---+---+---+---+---+----+---+---+
+    |  0|  3|  0|123|  2|  2| 12|-100|  0| 42|
+    |  1|  3|  2|123|  3|  5| 12|-100|-12| 37|
+    |  2|  3|  4|123|  4|  8| 12|-100|-24| 32|
+    |  3|  3|  6|123|  5| 11| 12|-100|-36| 27|
+    |  4|  3|  8|123|  6| 14| 12|-100|-48| 22|
+    +---+---+---+---+---+---+---+----+---+---+
     """
     res = F.lit(0)
     for col in cols:
