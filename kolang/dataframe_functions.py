@@ -166,7 +166,9 @@ def safe_union(df1: DataFrame, df2: DataFrame) -> DataFrame:
     Parameters
     ----------
     df1: :class:`DataFrame`
+        your first dataframe.
     df2: :class:`DataFrame`
+        your secend dataframe.
     Examples
     --------
     >>> df1 = spark.createDataFrame([(1, "foo", 4), (2, "bar", 4), ], ["col1", "col2", "col4"])
@@ -187,8 +189,6 @@ def safe_union(df1: DataFrame, df2: DataFrame) -> DataFrame:
      |-- col4: string (nullable = true)
      |-- col2: string (nullable = true)
      |-- col3: string (nullable = true)
-
-
     """
     columns1 = set(df1.columns)
     columns2 = set(df2.columns)
