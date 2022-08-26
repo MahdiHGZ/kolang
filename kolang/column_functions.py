@@ -20,13 +20,23 @@ from column import kolang_column_wrapper
 
 
 @kolang_column_wrapper
-def str_to_column(col: Union[Column, str]) -> Column:
+def col(col: Union[Column, str]) -> Column:
+    """
+
+    .. versionadded:: 1.0.0
+
+    Parameters
+    ----------
+    col: str or :class:`Column`
+
+    """
     return F.col(col) if isinstance(col, str) else col
 
+str_to_column = col
 
 @kolang_column_wrapper
 def percent(col: Union[Column, str] = 'count',
-            partition_by: Union[Column, str] = None,
+            partition_by: Union[Column, str, List[Union[Column, str]]] = None,
             r: int = 2) -> Column:
     """
         returns the percent of the value.
@@ -36,7 +46,7 @@ def percent(col: Union[Column, str] = 'count',
     ----------
     col: str or :class:`Column`, optional
         column containing number values (default = 'count')
-    partition_by: str or :class:`Column`, optional
+    partition_by: str or :class:`Column` or list of (str or :class:`Column`), optional
         partition of data.
     r: int, optional
         rounding a final result base on this (default = 2)
@@ -170,7 +180,7 @@ def number_normalizer(col: Union[Column, str]) -> Column:
 def cumulative_sum(col: Union[Column, str],
                    on_col: Union[Column, str],
                    ascending: bool = True,
-                   partition_by: Union[Column, str] = None) -> Column:
+                   partition_by: Union[Column, str, List[Union[Column, str]]] = None) -> Column:
     """
        normalize numbers in string to en number.
     .. versionadded:: 0.1.0
@@ -182,7 +192,7 @@ def cumulative_sum(col: Union[Column, str],
         order data base on this column.
     ascending: str or :class:`Column`, optional
         type of ordering is ascending. (default = True)
-    partition_by: str or :class:`Column`, optional
+    partition_by: str or :class:`Column` or list of (str or :class:`Column`), optional
         partition of data.
     Examples
     --------
@@ -237,6 +247,7 @@ def text_cleaner(col: Union[Column, str],
     +--------------------+----------------+
     """
     col = number_normalizer(col)
+    col = F.translate(col, 'كيأإؤةۀ', 'کیااوهه')
     col = F.regexp_replace(col, f"[^a-zآ-یA-Z0-9 {accept}]", " ")
     col = F.regexp_replace(col, " {2,}", " ")
     return col
@@ -474,8 +485,8 @@ def sum_columns(cols: List[Union[Column, str]]) -> Column:
     .. versionadded:: 0.4.0
     Parameters
     ----------
-    cols: list of str
-        list of columns name you want to sum.
+    cols: list of (str or :class:`Column`)
+        list of columns you want to sum.
     Examples
     --------
     >>> df = (spark.range(0, 5).toDF('a')
@@ -488,7 +499,7 @@ def sum_columns(cols: List[Union[Column, str]]) -> Column:
     ...         .withColumn('h', F.lit(-100))
     ...         .withColumn('i', F.col('a') * -12)
     ...         )
-    >>> df = df.withColumn('sum',sum_columns(['a','b','c','d','e','f','g','h','i']))
+    >>> df = df.withColumn('sum',sum_columns(['a',F.col('b'),'c','d','e','f','g','h','i']))
     >>> df.show()
     +---+---+---+---+---+---+---+----+---+---+
     |  a|  b|  c|  d|  e|  f|  g|   h|  i|sum|
@@ -515,8 +526,8 @@ def array_contains_column(col: Union[Column, str],
     .. versionadded:: 1.0.0
     Parameters
     ----------
-    col:
-    array_col:
+    col: str or :class:`Column`
+    array_col: str or :class:`Column`
 
     """
     col = str_to_column(col)
@@ -527,19 +538,22 @@ def array_contains_column(col: Union[Column, str],
 def cumulative_percent(col: Union[Column, str],
                        on_col: Union[Column, str],
                        ascending: bool = True,
-                       partition_by: Union[Column, str] = None,
+                       partition_by: Union[Column, str, List[Union[Column, str]]] = None,
                        r: int = 2) -> Column:
     """
 
     .. versionadded:: 1.0.0
     Parameters
     ----------
-    col:
-    on_col:
-    ascending:
-    partition_by:
-    r:
-
+    col: str or :class:`Column`
+        column containing string.
+    on_col: str or :class:`Column`
+        order data base on this column.
+    ascending: str or :class:`Column`, optional
+        type of ordering is ascending. (default = True)
+    partition_by: str or :class:`Column` or list of (str or :class:`Column`)
+    r: int, optional
+        rounding a final result base on this (default = 2)
     """
     col = str_to_column(col)
     on_col = str_to_column(on_col)
