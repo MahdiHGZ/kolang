@@ -16,7 +16,15 @@ import pyspark.sql.functions as F
 from pyspark.sql.window import Window
 from pyspark.sql.column import Column
 
+from column import kolang_column_wrapper
 
+
+@kolang_column_wrapper
+def str_to_column(col: Union[Column, str]) -> Column:
+    return F.col(col) if isinstance(col, str) else col
+
+
+@kolang_column_wrapper
 def percent(col: Union[Column, str] = 'count',
             partition_by: Union[Column, str] = None,
             r: int = 2) -> Column:
@@ -46,8 +54,7 @@ def percent(col: Union[Column, str] = 'count',
     |    4|   40.0|
     +-----+-------+
     """
-    if isinstance(col, str):
-        col = F.col(col)
+    col = str_to_column(col)
 
     if partition_by is None:
         w = Window.partitionBy()
@@ -56,6 +63,7 @@ def percent(col: Union[Column, str] = 'count',
     return F.round(100 * col / F.sum(col).over(w), r)
 
 
+@kolang_column_wrapper
 def median(col: str) -> Column:
     """
        Aggregate function: returns the median of the values in a group.
@@ -81,6 +89,7 @@ def median(col: str) -> Column:
     return (F.expr(f"percentile({col}, array(0.5))")[0]).alias(f'median({col})')
 
 
+@kolang_column_wrapper
 def str_array_to_array(col: Union[Column, str]) -> Column:
     """
        convert str_array to pysaprk array.
@@ -119,6 +128,7 @@ def str_array_to_array(col: Union[Column, str]) -> Column:
     return F.split(col, ', ')
 
 
+@kolang_column_wrapper
 def number_normalizer(col: Union[Column, str]) -> Column:
     """
        normalize numbers in string to en number.
@@ -156,10 +166,11 @@ def number_normalizer(col: Union[Column, str]) -> Column:
     return col
 
 
+@kolang_column_wrapper
 def cumulative_sum(col: Union[Column, str],
                    on_col: Union[Column, str],
                    ascending: bool = True,
-                   partition_by: Union[Column, str] = None):
+                   partition_by: Union[Column, str] = None) -> Column:
     """
        normalize numbers in string to en number.
     .. versionadded:: 0.1.0
@@ -176,7 +187,7 @@ def cumulative_sum(col: Union[Column, str],
     Examples
     --------
     >>> df = spark.range(0, 5).toDF('id').withColumn('value', F.lit(3))
-    >>> df.withColumn('cumulative_sum', cumulative_sum('value','id'))
+    >>> df = df.withColumn('cumulative_sum', cumulative_sum('value','id'))
     >>> df.show()
     +---+-----+--------------+
     | id|value|cumulative_sum|
@@ -196,6 +207,7 @@ def cumulative_sum(col: Union[Column, str],
     return F.sum(col).over(w)
 
 
+@kolang_column_wrapper
 def text_cleaner(col: Union[Column, str],
                  accept: str = "") -> Column:
     """
@@ -230,6 +242,7 @@ def text_cleaner(col: Union[Column, str],
     return col
 
 
+@kolang_column_wrapper
 def bin(col: Union[Column, str],
         scale: int = 10,
         flooring: bool = True) -> Column:
@@ -246,14 +259,15 @@ def bin(col: Union[Column, str],
         if True uses floor else uses round. (default = True)
 
     """
-    if isinstance(col, str):
-        col = F.col(col)
+    col = str_to_column(col)
+
     if flooring:
         return F.floor(col / scale) * scale
     else:
         return F.round(col / scale, 0) * scale
 
 
+@kolang_column_wrapper
 def session_id(device_id: Union[Column, str] = 'device_id',
                created_at: Union[Column, str] = 'created_at',
                session_time: int = 30,
@@ -272,10 +286,9 @@ def session_id(device_id: Union[Column, str] = 'device_id',
 
     """
     session_time = session_time * 60000
-    if isinstance(device_id, str):
-        device_id = F.col(device_id)
-    if isinstance(created_at, str):
-        created_at = F.col(created_at)
+
+    device_id = str_to_column(device_id)
+    created_at = str_to_column(created_at)
 
     session_window = Window.partitionBy(device_id).orderBy(created_at)
 
@@ -286,7 +299,8 @@ def session_id(device_id: Union[Column, str] = 'device_id',
     return col
 
 
-def cond_count(cond: Union[Column, str]):
+@kolang_column_wrapper
+def cond_count(cond: Union[Column, str]) -> Column:
     """
         Aggregate function: returns count of rows how accept the condition.
     .. versionadded:: 0.3.0
@@ -300,8 +314,9 @@ def cond_count(cond: Union[Column, str]):
     return F.count(F.when(cond, True))
 
 
+@kolang_column_wrapper
 def persian_number(col: Union[Column, str],
-                   format: str = '%d'):
+                   format: str = '%d') -> Column:
     """
         convert english number to persian number(string)
     .. versionadded:: 0.3.0
@@ -317,8 +332,9 @@ def persian_number(col: Union[Column, str],
     return col
 
 
+@kolang_column_wrapper
 def jalali_date(col: Union[Column, str],
-                format: str = '%Y-%m-%d'):
+                format: str = '%Y-%m-%d') -> Column:
     """
         convert gregorian date to jalali date.
     .. versionadded:: 0.3.0
@@ -451,7 +467,8 @@ def jalali_date(col: Union[Column, str],
     return F.format_string(format, *vars)
 
 
-def sum_columns(cols: List[str]) -> Column:
+@kolang_column_wrapper
+def sum_columns(cols: List[Union[Column, str]]) -> Column:
     """
         returns sum of your columns.
     .. versionadded:: 0.4.0
@@ -483,7 +500,57 @@ def sum_columns(cols: List[str]) -> Column:
     |  4|  3|  8|123|  6| 14| 12|-100|-48| 22|
     +---+---+---+---+---+---+---+----+---+---+
     """
+    cols = list(map(str_to_column, cols))
     res = F.lit(0)
     for col in cols:
-        res = res + F.col(col)
-    return res.alias(f"sum_columns({','.join(cols)})")
+        res = res + col
+    return res
+
+
+@kolang_column_wrapper
+def array_contains_column(col: Union[Column, str],
+                          array_col: Union[Column, str]) -> Column:
+    """
+
+    .. versionadded:: 1.0.0
+    Parameters
+    ----------
+    col:
+    array_col:
+
+    """
+    col = str_to_column(col)
+    return F.size(F.array_intersect(array_col, F.array([col]))) >= 1
+
+
+@kolang_column_wrapper
+def cumulative_percent(col: Union[Column, str],
+                       on_col: Union[Column, str],
+                       ascending: bool = True,
+                       partition_by: Union[Column, str] = None,
+                       r: int = 2) -> Column:
+    """
+
+    .. versionadded:: 1.0.0
+    Parameters
+    ----------
+    col:
+    on_col:
+    ascending:
+    partition_by:
+    r:
+
+    """
+    col = str_to_column(col)
+    on_col = str_to_column(on_col)
+
+    on_col = on_col if ascending else F.desc(on_col)
+
+    if partition_by is None:
+        w_sum = Window.orderBy(on_col)
+        w_percent = w = Window.partitionBy()
+    else:
+        w_sum = Window.partitionBy(partition_by).orderBy(on_col)
+        w_percent = Window.partitionBy(partition_by)
+
+    return F.round(100 * F.sum(col).over(w_sum) / F.sum(col).over(w_percent), r)
