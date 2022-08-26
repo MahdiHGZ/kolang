@@ -35,7 +35,7 @@ def unpivot(df: DataFrame,
     df: :class:`DataFrame`
         your DataFrame.
     on_columns: list of str
-        array contain name of columns you need to unpivot.
+        array contain name of columns you need to unpivot (Dont use number as column name).
     in_column: str or :class:`Column`
         name of column will contain your unpivot columns.
     value_column: str , optional

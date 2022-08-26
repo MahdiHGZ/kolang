@@ -393,7 +393,7 @@ def jalali_date(col: Union[Column, str],
     gwd = F.dayofweek(col)
 
     g_day_no = 365 * gy + F.floor((gy + 3) / 4) - F.floor((gy + 99) / 100) + F.floor((gy + 399) / 400)
-    g_day_no = g_day_no + F.dayofyear(col) - 1
+    g_day_no = g_day_no + gdy
 
     j_day_no = g_day_no - 79
 
@@ -403,7 +403,6 @@ def jalali_date(col: Union[Column, str],
 
     j_day_no = j_day_no % 1461
 
-    x = j_day_no
     jy = F.when(j_day_no >= 366, jy + F.floor((j_day_no - 1) / 365)).otherwise(jy).alias('jy')
     j_day_no = F.when(j_day_no >= 366, (j_day_no - 1) % 365).otherwise(j_day_no).alias('y')
 
