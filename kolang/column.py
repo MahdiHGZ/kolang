@@ -1,5 +1,6 @@
 from functools import wraps
 from types import FunctionType
+from pyspark.sql.column import Column
 
 
 def kolang_column_wrapper(method):
