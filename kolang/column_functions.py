@@ -16,7 +16,7 @@ import pyspark.sql.functions as F
 from pyspark.sql.window import Window
 from pyspark.sql.column import Column
 
-from column import kolang_column_wrapper
+from kolang.column import kolang_column_wrapper
 
 
 @kolang_column_wrapper
