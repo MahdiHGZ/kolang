@@ -49,5 +49,4 @@ class KolangColumnMetaClass(type):
 class KolangColumn(Column, metaclass=KolangColumnMetaClass):
 
     def isNullOrIn(self, *cols: Any):
-        return (self.isNull()| self.isin(*cols))
-
+        return (self.isNull() | self.isin(*cols))

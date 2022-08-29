@@ -528,6 +528,7 @@ def array_contains_column(col: Union[Column, str],
     ----------
     col: str or :class:`Column`
     array_col: str or :class:`Column`
+        column containing array.
 
     """
     col = str_to_column(col)
