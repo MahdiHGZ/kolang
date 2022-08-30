@@ -214,3 +214,77 @@ def safe_union(df1: DataFrame, df2: DataFrame) -> DataFrame:
             print(
                 f"Warning: safe_union function handle incompatible data types of this columns: {', '.join(incompatible_columns)}")
         return df1.unionByName(df2)
+
+
+def load_or_calculate_parquet(
+        func: Callable,
+        path: str,
+        range_params: Dict[str, List[Any]] = {},
+        constant_params: Dict[str, Any] = {},
+        overwrite: bool = False,
+        partition_size: int = 1,
+        log: bool = True,
+        error: str = 'ignore')->DataFrame:
+    """
+
+    Parameters
+    ----------
+    func:
+    path:
+    range_params:
+    constant_params:
+    overwrite:
+    partition_size:
+    log:
+    error:
+
+    Returns
+    -------
+
+    """
+    def logger(*args):
+        if log:
+            print(*args)
+
+    def make_product_path(path, product):
+        return os.path.join(path, '/'.join(map(lambda x: f'{x[0]}={x[1]}', list(product.items()))))
+
+    def load_product(product, product_path):
+        spark.read.parquet(product_path)
+        logger('load', product)
+
+    def calculate_product(product, product_path):
+        params = {**product, **constant_params}
+        df = func(**params)
+        df.repartition(partition_size).write.parquet(product_path, mode="overwrite")
+        logger('calculate', product)
+
+    range_keys = []
+    range_vals = []
+
+    for key, val in range_params.items():
+        range_keys.append(key)
+        range_vals.append(list(val))
+
+    range_products = list(itertools.product(*range_vals))
+    products = list(map(lambda x: dict(zip(range_keys, x)), range_products))
+
+    for product in products:
+        product_path = make_product_path(path, product)
+        if overwrite:
+            calculate_product(product, product_path)
+        else:
+            try:
+                load_product(product, product_path)
+            except pyspark.sql.utils.AnalysisException:
+                try:
+                    calculate_product(product, product_path)
+                except Exception as e:
+                    logger('error on calculate', product)
+                    if error == 'ignore':
+                        logger(e)
+                    elif error == 'stop':
+                        raise e
+
+    df = spark.read.parquet(path)
+    return df
