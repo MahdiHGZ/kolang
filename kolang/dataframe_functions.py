@@ -159,16 +159,14 @@ def transpose(df: DataFrame,
     return pandas_to_spark(pandas_df)
 
 
-def safe_union(df1: DataFrame, df2: DataFrame) -> DataFrame:
+def safe_union(*dfs: DataFrame) -> DataFrame:
     """
         union your dataframes with different columns.
     .. versionadded:: 0.4.0
     Parameters
     ----------
-    df1: :class:`DataFrame`
-        your first dataframe.
-    df2: :class:`DataFrame`
-        your secend dataframe.
+    dfs: :class:`DataFrame`
+        your dataframes.
     Examples
     --------
     >>> df1 = spark.createDataFrame([(1, "foo", 4), (2, "bar", 4), ], ["col1", "col2", "col4"])
@@ -190,6 +188,11 @@ def safe_union(df1: DataFrame, df2: DataFrame) -> DataFrame:
      |-- col2: string (nullable = true)
      |-- col3: string (nullable = true)
     """
+    if len(dfs) == 1:
+        return dfs[0]
+    if len(dfs) > 2:
+        return safe_union(df[0], safe_union(*dfs[1:]))
+    df1, df2 = dfs[0], fds[1]
     columns1 = set(df1.columns)
     columns2 = set(df2.columns)
     df1 = df1.select(*columns1, *[F.lit(None).alias(col) for col in (columns2 - columns1)])
@@ -224,7 +227,7 @@ def load_or_calculate_parquet(
         overwrite: bool = False,
         partition_size: int = 1,
         log: bool = True,
-        error: str = 'ignore')->DataFrame:
+        error: str = 'ignore') -> DataFrame:
     """
 
     Parameters
@@ -242,6 +245,7 @@ def load_or_calculate_parquet(
     -------
 
     """
+
     def logger(*args):
         if log:
             print(*args)
