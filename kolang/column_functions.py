@@ -32,7 +32,9 @@ def col(col: Union[Column, str]) -> Column:
     """
     return F.col(col) if isinstance(col, str) else col
 
+
 str_to_column = col
+
 
 @kolang_column_wrapper
 def percent(col: Union[Column, str] = 'count',
@@ -323,6 +325,9 @@ def cond_count(cond: Union[Column, str]) -> Column:
     if isinstance(cond, str):
         cond = F.expr(cond)
     return F.count(F.when(cond, True))
+
+
+condition_count = cond_count
 
 
 @kolang_column_wrapper
