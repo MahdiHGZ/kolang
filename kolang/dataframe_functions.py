@@ -15,11 +15,15 @@ from typing import (
 import pyspark
 import pyspark.sql.functions as F
 import pyspark.sql.types as T
-from pyspark.sql.column import Column
 from pyspark.sql.dataframe import DataFrame
 from pyspark.sql import SparkSession
 
 import pandas as pd
+
+import itertools
+import os
+
+spark = SparkSession.builder.getOrCreate()
 
 
 def unpivot(df: DataFrame,
@@ -191,8 +195,8 @@ def safe_union(*dfs: DataFrame) -> DataFrame:
     if len(dfs) == 1:
         return dfs[0]
     if len(dfs) > 2:
-        return safe_union(df[0], safe_union(*dfs[1:]))
-    df1, df2 = dfs[0], fds[1]
+        return safe_union(dfs[0], safe_union(*dfs[1:]))
+    df1, df2 = dfs[0], dfs[1]
     columns1 = set(df1.columns)
     columns2 = set(df2.columns)
     df1 = df1.select(*columns1, *[F.lit(None).alias(col) for col in (columns2 - columns1)])
