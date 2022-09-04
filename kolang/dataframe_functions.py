@@ -229,20 +229,22 @@ def load_or_calculate_parquet(
         log: bool = True,
         error: str = 'ignore') -> DataFrame:
     """
-
+        run your function with your all given params and parqet result when parqet not exist.
+    .. versionadded:: 1.0.0
     Parameters
     ----------
-    func:
-    path:
-    range_params:
-    constant_params:
-    overwrite:
-    partition_size:
-    log:
-    error:
+    func: Callable
+    path: str
+    range_params: dict
+    constant_params: dict
+    overwrite: bool
+    partition_size: int
+    log: bool
+    error: str
 
-    Returns
-    -------
+    Examples
+    --------
+
 
     """
 
@@ -250,39 +252,41 @@ def load_or_calculate_parquet(
         if log:
             print(*args)
 
-    def make_product_path(path, product):
+    def make_products():
+        range_keys = []
+        range_vals = []
+
+        for key, val in range_params.items():
+            range_keys.append(key)
+            range_vals.append(list(val))
+
+        range_products = list(itertools.product(*range_vals))
+        return list(map(lambda x: dict(zip(range_keys, x)), range_products))
+
+    def make_product_path(product):
         return os.path.join(path, '/'.join(map(lambda x: f'{x[0]}={x[1]}', list(product.items()))))
 
-    def load_product(product, product_path):
-        spark.read.parquet(product_path)
+    def load_product(product):
+        spark.read.parquet(make_product_path(product))
         logger('load', product)
 
-    def calculate_product(product, product_path):
+    def calculate_product(product):
         params = {**product, **constant_params}
         df = func(**params)
-        df.repartition(partition_size).write.parquet(product_path, mode="overwrite")
+        df.repartition(partition_size).write.parquet(make_product_path(product), mode="overwrite")
         logger('calculate', product)
 
-    range_keys = []
-    range_vals = []
-
-    for key, val in range_params.items():
-        range_keys.append(key)
-        range_vals.append(list(val))
-
-    range_products = list(itertools.product(*range_vals))
-    products = list(map(lambda x: dict(zip(range_keys, x)), range_products))
+    products = make_products()
 
     for product in products:
-        product_path = make_product_path(path, product)
         if overwrite:
-            calculate_product(product, product_path)
+            calculate_product(product)
         else:
             try:
-                load_product(product, product_path)
+                load_product(product)
             except pyspark.sql.utils.AnalysisException:
                 try:
-                    calculate_product(product, product_path)
+                    calculate_product(product)
                 except Exception as e:
                     logger('error on calculate', product)
                     if error == 'ignore':
