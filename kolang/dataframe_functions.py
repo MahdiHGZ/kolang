@@ -248,8 +248,37 @@ def load_or_calculate_parquet(
 
     Examples
     --------
-
-
+    >>> def calculate_new_user(ds,type):
+    >>>     users = spark.range(0, random.randint(2, 150),3).toDF('id').withColumn('type',F.col('id')%2==0)
+    >>>     users_count = users.groupBy('type').count()
+    >>>     users_count = users_count.withColumn('percent',column_functions.percent()).filter(F.col('type')==type)
+    >>>     return users_count
+    >>>
+    >>> df = calculate_new_user('2022-09-10',True)
+    >>> df.show()
+    +----+-----+-------+
+    |type|count|percent|
+    +----+-----+-------+
+    |true|   24|  51.06|
+    +----+-----+-------+
+    >>> df = load_or_calculate_parquet(
+    >>>         func=calculate_new_user,
+    >>>         path='/my_directory',
+    >>>         range_params={'ds':['2022-09-03','2022-09-05'],
+    >>>                       'type':[True,False]})
+    >>> df.show()
+    calculate {'ds': '2022-09-03', 'type': True}
+    calculate {'ds': '2022-09-03', 'type': False}
+    load {'ds': '2022-09-05', 'type': True}
+    load {'ds': '2022-09-05', 'type': False}
+    +-----+-----+-------+----------+
+    | type|count|percent|        ds|
+    +-----+-----+-------+----------+
+    | True|    7|   50.0|2022-09-05|
+    | True|    4|   50.0|2022-09-03|
+    |False|   17|   50.0|2022-09-05|
+    |False|   10|  47.62|2022-09-03|
+    +-----+-----+-------+----------+
     """
 
     def logger(*args):
