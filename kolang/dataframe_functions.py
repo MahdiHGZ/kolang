@@ -45,7 +45,7 @@ def unpivot(df: DataFrame,
     value_column: str , optional
         name of column will contain values. (default = 'value')
     ignore_null: bool, optional
-        if be True filter the rows with null value.(default = True)
+        if be True filter the rows with null value. (default = True)
     Examples
     --------
     >>> data = [("Banana", 1000, "USA"), ("Beans", 1600, "USA"), ("Orange", 2000, "USA"),
@@ -234,17 +234,26 @@ def load_or_calculate_parquet(
         error: str = 'ignore') -> DataFrame:
     """
         run your function with your all given params and parquet result when parquet not exist.
+        Eventually, it returns the all dataframe parked at the path.
     .. versionadded:: 1.0.0
     Parameters
     ----------
     func: Callable
+        Your function that returns a dataframe.
     path: str
-    range_params: dict
-    constant_params: dict
-    overwrite: bool
-    partition_size: int
-    log: bool
-    error: str
+        Your directory for parquet.
+    range_params: dict, optional
+        dictionary for your function params you want function run with them. (default = {})
+    constant_params: dict, optional
+        dictionary for your function params that are fixed. (default = {})
+    overwrite: bool, optional
+        when is True run function for existing values and overwrte parquet. (default = False)
+    partition_size: int, optional
+        The size of each parquet partition. (default = 1)
+    log: bool, optional
+        when is True print log.  (default = True)
+    error: str, optional
+        how reacte to error. (ignore, stop) (default = 'ignore')
 
     Examples
     --------
