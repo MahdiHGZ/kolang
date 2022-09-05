@@ -15,11 +15,15 @@ from typing import (
 import pyspark
 import pyspark.sql.functions as F
 import pyspark.sql.types as T
-from pyspark.sql.column import Column
 from pyspark.sql.dataframe import DataFrame
 from pyspark.sql import SparkSession
 
 import pandas as pd
+
+import itertools
+import os
+
+spark = SparkSession.builder.getOrCreate()
 
 
 def unpivot(df: DataFrame,
@@ -35,13 +39,13 @@ def unpivot(df: DataFrame,
     df: :class:`DataFrame`
         your DataFrame.
     on_columns: list of str
-        array contain name of columns you need to unpivot (Dont use number as column name).
+        array contain name of columns you need to unpivot (Dont use number as column name!).
     in_column: str or :class:`Column`
         name of column will contain your unpivot columns.
     value_column: str , optional
         name of column will contain values. (default = 'value')
     ignore_null: bool, optional
-        if be True filter the rows with null value.(default = True)
+        if be True filter the rows with null value. (default = True)
     Examples
     --------
     >>> data = [("Banana", 1000, "USA"), ("Beans", 1600, "USA"), ("Orange", 2000, "USA"),
@@ -159,16 +163,14 @@ def transpose(df: DataFrame,
     return pandas_to_spark(pandas_df)
 
 
-def safe_union(df1: DataFrame, df2: DataFrame) -> DataFrame:
+def safe_union(*dfs: DataFrame) -> DataFrame:
     """
         union your dataframes with different columns.
     .. versionadded:: 0.4.0
     Parameters
     ----------
-    df1: :class:`DataFrame`
-        your first dataframe.
-    df2: :class:`DataFrame`
-        your secend dataframe.
+    dfs: :class:`DataFrame`
+        your dataframes.
     Examples
     --------
     >>> df1 = spark.createDataFrame([(1, "foo", 4), (2, "bar", 4), ], ["col1", "col2", "col4"])
@@ -190,6 +192,11 @@ def safe_union(df1: DataFrame, df2: DataFrame) -> DataFrame:
      |-- col2: string (nullable = true)
      |-- col3: string (nullable = true)
     """
+    if len(dfs) == 1:
+        return dfs[0]
+    if len(dfs) > 2:
+        return safe_union(dfs[0], safe_union(*dfs[1:]))
+    df1, df2 = dfs[0], dfs[1]
     columns1 = set(df1.columns)
     columns2 = set(df2.columns)
     df1 = df1.select(*columns1, *[F.lit(None).alias(col) for col in (columns2 - columns1)])
@@ -214,3 +221,120 @@ def safe_union(df1: DataFrame, df2: DataFrame) -> DataFrame:
             print(
                 f"Warning: safe_union function handle incompatible data types of this columns: {', '.join(incompatible_columns)}")
         return df1.unionByName(df2)
+
+
+def load_or_calculate_parquet(
+        func: Callable,
+        path: str,
+        range_params: Dict[str, List[Any]] = {},
+        constant_params: Dict[str, Any] = {},
+        overwrite: bool = False,
+        partition_size: int = 1,
+        log: bool = True,
+        error: str = 'ignore') -> DataFrame:
+    """
+        run your function with your all given params and parquet result when parquet not exist.
+        Eventually, it returns the all dataframe parked at the path.
+    .. versionadded:: 1.0.0
+    Parameters
+    ----------
+    func: Callable
+        Your function that returns a dataframe.
+    path: str
+        Your directory for parquet.
+    range_params: dict, optional
+        dictionary for your function params you want function run with them. (default = {})
+    constant_params: dict, optional
+        dictionary for your function params that are fixed. (default = {})
+    overwrite: bool, optional
+        when is True run function for existing values and overwrte parquet. (default = False)
+    partition_size: int, optional
+        The size of each parquet partition. (default = 1)
+    log: bool, optional
+        when is True print log.  (default = True)
+    error: str, optional
+        how reacte to error. (ignore, stop) (default = 'ignore')
+
+    Examples
+    --------
+    >>> def calculate_new_user(ds,type):
+    >>>     users = spark.range(0, random.randint(2, 150),3).toDF('id').withColumn('type',F.col('id')%2==0)
+    >>>     users_count = users.groupBy('type').count()
+    >>>     users_count = users_count.withColumn('percent',column_functions.percent()).filter(F.col('type')==type)
+    >>>     return users_count
+    >>>
+    >>> df = calculate_new_user('2022-09-10',True)
+    >>> df.show()
+    +----+-----+-------+
+    |type|count|percent|
+    +----+-----+-------+
+    |true|   24|  51.06|
+    +----+-----+-------+
+    >>> df = load_or_calculate_parquet(
+    >>>         func=calculate_new_user,
+    >>>         path='/my_directory',
+    >>>         range_params={'ds':['2022-09-03','2022-09-05'],
+    >>>                       'type':[True,False]})
+    >>> df.show()
+    calculate {'ds': '2022-09-03', 'type': True}
+    calculate {'ds': '2022-09-03', 'type': False}
+    load {'ds': '2022-09-05', 'type': True}
+    load {'ds': '2022-09-05', 'type': False}
+    +-----+-----+-------+----------+
+    | type|count|percent|        ds|
+    +-----+-----+-------+----------+
+    | True|    7|   50.0|2022-09-05|
+    | True|    4|   50.0|2022-09-03|
+    |False|   17|   50.0|2022-09-05|
+    |False|   10|  47.62|2022-09-03|
+    +-----+-----+-------+----------+
+    """
+
+    def logger(*args):
+        if log:
+            print(*args)
+
+    def make_products():
+        range_keys = []
+        range_vals = []
+
+        for key, val in range_params.items():
+            range_keys.append(key)
+            range_vals.append(list(val))
+
+        range_products = list(itertools.product(*range_vals))
+        return list(map(lambda x: dict(zip(range_keys, x)), range_products))
+
+    def make_product_path(product):
+        return os.path.join(path, '/'.join(map(lambda x: f'{x[0]}={x[1]}', list(product.items()))))
+
+    def load_product(product):
+        spark.read.parquet(make_product_path(product))
+        logger('load', product)
+
+    def calculate_product(product):
+        params = {**product, **constant_params}
+        df = func(**params)
+        df.repartition(partition_size).write.parquet(make_product_path(product), mode="overwrite")
+        logger('calculate', product)
+
+    products = make_products()
+
+    for product in products:
+        if overwrite:
+            calculate_product(product)
+        else:
+            try:
+                load_product(product)
+            except pyspark.sql.utils.AnalysisException:
+                try:
+                    calculate_product(product)
+                except Exception as e:
+                    logger('error on calculate', product)
+                    if error == 'ignore':
+                        logger(e)
+                    elif error == 'stop':
+                        raise e
+
+    df = spark.read.parquet(path)
+    return df
