@@ -547,7 +547,7 @@ def cumulative_percent(col: Union[Column, str],
                        partition_by: Union[Column, str, List[Union[Column, str]]] = None,
                        r: int = 2) -> Column:
     """
-
+        return the percent of cumulative sum of data.
     .. versionadded:: 1.0.0
     Parameters
     ----------

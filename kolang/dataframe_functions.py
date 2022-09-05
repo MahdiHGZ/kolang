@@ -233,7 +233,7 @@ def load_or_calculate_parquet(
         log: bool = True,
         error: str = 'ignore') -> DataFrame:
     """
-        run your function with your all given params and parqet result when parqet not exist.
+        run your function with your all given params and parquet result when parquet not exist.
     .. versionadded:: 1.0.0
     Parameters
     ----------
