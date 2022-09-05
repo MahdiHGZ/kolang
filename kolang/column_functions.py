@@ -527,7 +527,7 @@ def sum_columns(cols: List[Union[Column, str]]) -> Column:
 def array_contains_column(col: Union[Column, str],
                           array_col: Union[Column, str]) -> Column:
     """
-
+        check array Column contains other Column.
     .. versionadded:: 1.0.0
     Parameters
     ----------
@@ -535,6 +535,20 @@ def array_contains_column(col: Union[Column, str],
     array_col: str or :class:`Column`
         column containing array.
 
+    Examples
+    --------
+    >>> df = spark.createDataFrame([("xyzz", ["xyc","hello"]),
+    >>>                             ("bye",  ["kdf","bye"]),
+    >>>                             ("b",    ["b","bye"]),
+    >>>                             ("hello",["sd","sds"]),],
+    >>>                             ['word', 'words'])
+    >>> df.filter(array_contains_column('word','words')).show()
+    +----+----------+
+    |word|     words|
+    +----+----------+
+    | bye|[kdf, bye]|
+    |   b|  [b, bye]|
+    +----+----------+
     """
     col = str_to_column(col)
     return F.size(F.array_intersect(array_col, F.array([col]))) >= 1
@@ -560,6 +574,23 @@ def cumulative_percent(col: Union[Column, str],
     partition_by: str or :class:`Column` or list of (str or :class:`Column`)
     r: int, optional
         rounding a final result base on this (default = 2)
+
+    Examples
+    --------
+    >>> df = spark.range(0, 5).toDF('id').withColumn('value', F.lit(3))
+    >>> df = df.withColumn('cumulative_sum', cumulative_sum('value','id'))
+    >>> df = df.withColumn('percent', percent('value'))
+    >>> df = df.withColumn('cumulative_percent', cumulative_percent('value','id'))
+    >>> df.show()
+    +---+-----+--------------+-------+------------------+
+    | id|value|cumulative_sum|percent|cumulative_percent|
+    +---+-----+--------------+-------+------------------+
+    |  0|    3|             3|   20.0|              20.0|
+    |  1|    3|             6|   20.0|              40.0|
+    |  2|    3|             9|   20.0|              60.0|
+    |  3|    3|            12|   20.0|              80.0|
+    |  4|    3|            15|   20.0|             100.0|
+    +---+-----+--------------+-------+------------------+
     """
     col = str_to_column(col)
     on_col = str_to_column(on_col)
