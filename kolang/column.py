@@ -47,6 +47,17 @@ class KolangColumnMetaClass(type):
 
 
 class KolangColumn(Column, metaclass=KolangColumnMetaClass):
+    """
+    A column in a DataFrame base on pyspark.sql.column.Column with new methods!
+    """
 
     def isNullOrIn(self, *cols: Any):
+        """
+        A boolean expression that is evaluated to true if the value of this
+        expression is contained by the evaluated values of the arguments or being Null.
+        Parameters
+        ----------
+        cols: Any
+
+        """
         return self.isNull() | self.isin(*cols)

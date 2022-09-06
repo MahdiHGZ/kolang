@@ -316,6 +316,7 @@ def session_id(device_id: Union[Column, str] = 'device_id',
 def cond_count(cond: Union[Column, str]) -> Column:
     """
         Aggregate function: returns count of rows how accept the condition.
+    condition_count
     .. versionadded:: 0.3.0
     Parameters
     ----------

@@ -271,10 +271,10 @@ def load_or_calculate_parquet(
     |true|   24|  51.06|
     +----+-----+-------+
     >>> df = load_or_calculate_parquet(
-    >>>         func=calculate_new_user,
-    >>>         path='/my_directory',
-    >>>         range_params={'ds':['2022-09-03','2022-09-05'],
-    >>>                       'type':[True,False]})
+    ...         func=calculate_new_user,
+    ...         path='/my_directory',
+    ...         range_params={'ds':['2022-09-03','2022-09-05'],
+    ...                       'type':[True,False]})
     >>> df.show()
     calculate {'ds': '2022-09-03', 'type': True}
     calculate {'ds': '2022-09-03', 'type': False}
