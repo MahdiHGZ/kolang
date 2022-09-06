@@ -32,7 +32,7 @@ def unpivot(df: DataFrame,
             value_column: str = 'value',
             ignore_null: bool = True) -> DataFrame:
     """
-       unpivot DataFrame.
+    Unpivot DataFrame.
     .. versionadded:: 0.1.0
     Parameters
     ----------
@@ -108,7 +108,7 @@ def unpivot(df: DataFrame,
 
 def pandas_to_spark(df: pd.DataFrame) -> DataFrame:
     """
-        Given pandas dataframe, it will return a spark's dataframe.
+    Given pandas dataframe, it will return a spark's dataframe.
     .. versionadded:: 0.3.0
     Parameters
     ----------
@@ -149,8 +149,8 @@ def pandas_to_spark(df: pd.DataFrame) -> DataFrame:
 def transpose(df: DataFrame,
               col: str) -> DataFrame:
     """
-        transpose your DataFrame.
-        Warnings: Dont use it for big DataFrames!!
+    Transpose your DataFrame.
+    Warnings: Dont use it for big DataFrames!!
     .. versionadded:: 0.3.0
     Parameters
     ----------
@@ -165,7 +165,7 @@ def transpose(df: DataFrame,
 
 def safe_union(*dfs: DataFrame) -> DataFrame:
     """
-        union your dataframes with different columns.
+    Union your dataframes with different columns.
     .. versionadded:: 0.4.0
     Parameters
     ----------
@@ -233,8 +233,8 @@ def load_or_calculate_parquet(
         log: bool = True,
         error: str = 'ignore') -> DataFrame:
     """
-        run your function with your all given params and parquet result when parquet not exist.
-        Eventually, it returns the all dataframe parked at the path.
+    Run your function with your all given params and parquet result when parquet not exist.
+    Eventually, it returns the all dataframe parked at the path.
     .. versionadded:: 1.0.0
     Parameters
     ----------
