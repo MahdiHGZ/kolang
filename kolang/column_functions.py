@@ -22,7 +22,7 @@ from kolang.column import kolang_column_wrapper
 @kolang_column_wrapper
 def col(col: Union[Column, str]) -> Column:
     """
-
+        Returns KolangColumn.
     .. versionadded:: 1.0.0
 
     Parameters
@@ -80,6 +80,7 @@ def percent(col: Union[Column, str] = 'count',
 def median(col: str) -> Column:
     """
         Aggregate function: returns the median of the values in a group.
+
     .. versionadded:: 0.1.0
 
     Parameters
@@ -106,6 +107,7 @@ def median(col: str) -> Column:
 def str_array_to_array(col: Union[Column, str]) -> Column:
     """
         Convert str_array to pysaprk array.
+
     .. versionadded:: 0.1.0
 
     Parameters
@@ -145,6 +147,7 @@ def str_array_to_array(col: Union[Column, str]) -> Column:
 def number_normalizer(col: Union[Column, str]) -> Column:
     """
         Normalize numbers in string to en number.
+
     .. versionadded:: 0.1.0
     Parameters
     ----------
@@ -185,7 +188,8 @@ def cumulative_sum(col: Union[Column, str],
                    ascending: bool = True,
                    partition_by: Union[Column, str, List[Union[Column, str]]] = None) -> Column:
     """
-        Normalize numbers in string to en number.
+        Calculate cumulative sum of column.
+
     .. versionadded:: 0.1.0
     Parameters
     ----------
@@ -225,6 +229,7 @@ def text_cleaner(col: Union[Column, str],
                  accept: str = "") -> Column:
     """
         Clean text from emoji and other symbols.(just accept numbers and english and persian letters)
+
     .. versionadded:: 0.1.0
     Parameters
     ----------
@@ -288,6 +293,7 @@ def session_id(device_id: Union[Column, str] = 'device_id',
                ) -> Column:
     """
         Returns session_id for actions.
+
     .. versionadded:: 0.2.0
     Parameters
     ----------
@@ -340,7 +346,8 @@ condition_count = cond_count
 def persian_number(col: Union[Column, str],
                    format: str = '%d') -> Column:
     """
-        Convert english number to persian number(string)
+        Convert english number to persian number(string).
+
     .. versionadded:: 0.3.0
     Parameters
     ----------
@@ -359,6 +366,7 @@ def jalali_date(col: Union[Column, str],
                 format: str = '%Y-%m-%d') -> Column:
     """
         Convert gregorian date to jalali date.
+
     .. versionadded:: 0.3.0
     Parameters
     ----------
@@ -493,6 +501,7 @@ def jalali_date(col: Union[Column, str],
 def sum_columns(cols: List[Union[Column, str]]) -> Column:
     """
         Returns sum of your columns.
+
     .. versionadded:: 0.4.0
     Parameters
     ----------
@@ -534,6 +543,7 @@ def array_contains_column(col: Union[Column, str],
                           array_col: Union[Column, str]) -> Column:
     """
         Check array Column contains other Column.
+
     .. versionadded:: 1.0.0
     Parameters
     ----------
@@ -568,6 +578,7 @@ def cumulative_percent(col: Union[Column, str],
                        r: int = 2) -> Column:
     """
         Return the percent of cumulative sum of data.
+
     .. versionadded:: 1.0.0
     Parameters
     ----------
