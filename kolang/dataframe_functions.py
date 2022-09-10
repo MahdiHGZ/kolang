@@ -23,8 +23,6 @@ import pandas as pd
 import itertools
 import os
 
-spark = SparkSession.builder.getOrCreate()
-
 
 def unpivot(df: DataFrame,
             on_columns: List[str],
@@ -289,6 +287,7 @@ def load_or_calculate_parquet(
     |False|   10|  47.62|2022-09-03|
     +-----+-----+-------+----------+
     """
+    spark = SparkSession.builder.getOrCreate()
 
     def logger(*args):
         if log:
