@@ -41,7 +41,8 @@ def percent(col: Union[Column, str] = 'count',
             partition_by: Union[Column, str, List[Union[Column, str]]] = None,
             r: int = 2) -> Column:
     """
-    Returns the percent of the value.
+        Returns the percent of the value.
+
     .. versionadded:: 0.1.0
 
     Parameters
@@ -78,7 +79,7 @@ def percent(col: Union[Column, str] = 'count',
 @kolang_column_wrapper
 def median(col: str) -> Column:
     """
-    Aggregate function: returns the median of the values in a group.
+        Aggregate function: returns the median of the values in a group.
     .. versionadded:: 0.1.0
 
     Parameters
@@ -104,7 +105,7 @@ def median(col: str) -> Column:
 @kolang_column_wrapper
 def str_array_to_array(col: Union[Column, str]) -> Column:
     """
-    Convert str_array to pysaprk array.
+        Convert str_array to pysaprk array.
     .. versionadded:: 0.1.0
 
     Parameters
@@ -143,7 +144,7 @@ def str_array_to_array(col: Union[Column, str]) -> Column:
 @kolang_column_wrapper
 def number_normalizer(col: Union[Column, str]) -> Column:
     """
-    Normalize numbers in string to en number.
+        Normalize numbers in string to en number.
     .. versionadded:: 0.1.0
     Parameters
     ----------
@@ -184,7 +185,7 @@ def cumulative_sum(col: Union[Column, str],
                    ascending: bool = True,
                    partition_by: Union[Column, str, List[Union[Column, str]]] = None) -> Column:
     """
-    Normalize numbers in string to en number.
+        Normalize numbers in string to en number.
     .. versionadded:: 0.1.0
     Parameters
     ----------
@@ -223,7 +224,7 @@ def cumulative_sum(col: Union[Column, str],
 def text_cleaner(col: Union[Column, str],
                  accept: str = "") -> Column:
     """
-    Clean text from emoji and other symbols.(just accept numbers and english and persian letters)
+        Clean text from emoji and other symbols.(just accept numbers and english and persian letters)
     .. versionadded:: 0.1.0
     Parameters
     ----------
@@ -286,7 +287,7 @@ def session_id(device_id: Union[Column, str] = 'device_id',
                session_time: int = 30,
                ) -> Column:
     """
-    Returns session_id for actions.
+        Returns session_id for actions.
     .. versionadded:: 0.2.0
     Parameters
     ----------
@@ -315,7 +316,7 @@ def session_id(device_id: Union[Column, str] = 'device_id',
 @kolang_column_wrapper
 def cond_count(cond: Union[Column, str]) -> Column:
     """
-    Aggregate function: returns count of rows how accept the condition.
+        Aggregate function: returns count of rows how accept the condition.
 
     .. versionadded:: 0.3.0
     Notes
@@ -339,7 +340,7 @@ condition_count = cond_count
 def persian_number(col: Union[Column, str],
                    format: str = '%d') -> Column:
     """
-    Convert english number to persian number(string)
+        Convert english number to persian number(string)
     .. versionadded:: 0.3.0
     Parameters
     ----------
@@ -357,7 +358,7 @@ def persian_number(col: Union[Column, str],
 def jalali_date(col: Union[Column, str],
                 format: str = '%Y-%m-%d') -> Column:
     """
-    Convert gregorian date to jalali date.
+        Convert gregorian date to jalali date.
     .. versionadded:: 0.3.0
     Parameters
     ----------
@@ -491,7 +492,7 @@ def jalali_date(col: Union[Column, str],
 @kolang_column_wrapper
 def sum_columns(cols: List[Union[Column, str]]) -> Column:
     """
-    Returns sum of your columns.
+        Returns sum of your columns.
     .. versionadded:: 0.4.0
     Parameters
     ----------
@@ -532,7 +533,7 @@ def sum_columns(cols: List[Union[Column, str]]) -> Column:
 def array_contains_column(col: Union[Column, str],
                           array_col: Union[Column, str]) -> Column:
     """
-    Check array Column contains other Column.
+        Check array Column contains other Column.
     .. versionadded:: 1.0.0
     Parameters
     ----------
@@ -566,7 +567,7 @@ def cumulative_percent(col: Union[Column, str],
                        partition_by: Union[Column, str, List[Union[Column, str]]] = None,
                        r: int = 2) -> Column:
     """
-    Return the percent of cumulative sum of data.
+        Return the percent of cumulative sum of data.
     .. versionadded:: 1.0.0
     Parameters
     ----------
