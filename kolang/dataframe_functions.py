@@ -317,10 +317,17 @@ def load_or_calculate_parquet(
         logger('load', product)
 
     def calculate_product(product):
-        params = {**product, **constant_params}
-        df = func(**params)
-        df.repartition(partition_size).write.parquet(make_product_path(product), mode="overwrite")
-        logger('calculate', product)
+        try:
+            params = {**product, **constant_params}
+            df = func(**params)
+            df.repartition(partition_size).write.parquet(make_product_path(product), mode="overwrite")
+            logger('calculate', product)
+        except Exception as e:
+            logger('error on calculate', product)
+            if error == 'ignore':
+                logger(e)
+            elif error == 'stop':
+                raise e
 
     products = make_products()
 
@@ -331,14 +338,7 @@ def load_or_calculate_parquet(
             try:
                 load_product(product)
             except pyspark.sql.utils.AnalysisException:
-                try:
-                    calculate_product(product)
-                except Exception as e:
-                    logger('error on calculate', product)
-                    if error == 'ignore':
-                        logger(e)
-                    elif error == 'stop':
-                        raise e
+                calculate_product(product)
 
     df = spark.read.parquet(path)
     return df
