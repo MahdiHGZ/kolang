@@ -30,13 +30,13 @@ def kolang_column_wrapper(method):
 
 class KolangColumnMetaClass(type):
     def __new__(meta, classname, bases, classDict):
-        newClassDict = {}
+        new_class_dict = {}
         for attributeName, attribute in classDict.items():
             if isinstance(attribute, FunctionType):
                 attribute = kolang_column_wrapper(attribute)
-            newClassDict[attributeName] = attribute
+            new_class_dict[attributeName] = attribute
 
-        child = super().__new__(meta, classname, bases, newClassDict)
+        child = super().__new__(meta, classname, bases, new_class_dict)
 
         for base in bases:
             if base == Column:
@@ -61,4 +61,3 @@ class KolangColumn(Column, metaclass=KolangColumnMetaClass):
             The values to be checked.
         """
         return self.isNull() | self.isin(*vals)
-

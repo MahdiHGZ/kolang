@@ -623,6 +623,7 @@ def cumulative_percent(col: Union[Column, str],
 
     return F.round(100 * F.sum(col).over(w_sum) / F.sum(col).over(w_percent), r)
 
+
 @kolang_column_wrapper
 def weighted_average(col: Union[Column, str],
                      weight: Union[Column, str],
@@ -648,4 +649,3 @@ def weighted_average(col: Union[Column, str],
     if r is not None:
         final_col = F.round(final_col, r)
     return final_col
-
