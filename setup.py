@@ -28,7 +28,7 @@ def get_description():
 
 
 requirements = [
-    "pandas >= 1.1,<2",
+    "pandas >=1.1,<2",
     # "pyspark ~= 2.4.3",
 ]
 
