@@ -1,20 +1,9 @@
-from typing import (
-    Any,
-    cast,
-    Callable,
-    Dict,
-    List,
-    overload,
-    Optional,
-    Tuple,
-    TYPE_CHECKING,
-    Union,
-    ValuesView,
-)
+from typing import (TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple,
+                    Union, ValuesView, cast, overload)
 
 import pyspark.sql.functions as F
-from pyspark.sql.window import Window
 from pyspark.sql.column import Column
+from pyspark.sql.window import Window
 
 from kolang.column import kolang_column_wrapper
 
@@ -585,7 +574,7 @@ def cumulative_percent(col: Union[Column, str],
     col: str or :class:`Column`
         column containing string.
     on_col: str or :class:`Column`
-        order data base on this column.
+        order base on this column.
     ascending: str or :class:`Column`, optional
         type of ordering is ascending. (default = True)
     partition_by: str or :class:`Column` or list of (str or :class:`Column`)
@@ -622,3 +611,30 @@ def cumulative_percent(col: Union[Column, str],
         w_percent = Window.partitionBy(partition_by)
 
     return F.round(100 * F.sum(col).over(w_sum) / F.sum(col).over(w_percent), r)
+
+
+@kolang_column_wrapper
+def weighted_average(col: Union[Column, str],
+                     weight: Union[Column, str],
+                     r: int = None
+                     ) -> Column:
+    """
+    Aggregate function Returns the weighted average of the values in a group.
+
+    .. versionadded:: 1.1.0
+
+    Parameters
+    ----------
+    col: str or :class:`Column`
+        column containing values.
+    weight: str or :class:`Column`
+        column containing weight values.
+    r: int, optional
+        rounding a final result base on this (default = None)
+    """
+    col = str_to_column(col)
+    weight = str_to_column(weight)
+    final_col = F.sum(col * weight) / F.sum(weight)
+    if r is not None:
+        final_col = F.round(final_col, r)
+    return final_col

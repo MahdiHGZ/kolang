@@ -1,27 +1,14 @@
-from typing import (
-    Any,
-    cast,
-    Callable,
-    Dict,
-    List,
-    overload,
-    Optional,
-    Tuple,
-    TYPE_CHECKING,
-    Union,
-    ValuesView,
-)
+import itertools
+import os
+from typing import (TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple,
+                    Union, ValuesView, cast, overload)
 
+import pandas as pd
 import pyspark
 import pyspark.sql.functions as F
 import pyspark.sql.types as T
-from pyspark.sql.dataframe import DataFrame
 from pyspark.sql import SparkSession
-
-import pandas as pd
-
-import itertools
-import os
+from pyspark.sql.dataframe import DataFrame
 
 
 def unpivot(df: DataFrame,
