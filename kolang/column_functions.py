@@ -638,3 +638,21 @@ def weighted_average(col: Union[Column, str],
     if r is not None:
         final_col = F.round(final_col, r)
     return final_col
+
+
+@kolang_column_wrapper
+def count_distinct_with_nulls(col: Union[Column, str]) -> Column:
+    """
+    Aggregate function Returns the count of distinct values in a group, including nulls.
+
+    .. versionadded:: 1.2.0
+
+    Parameters
+    ----------
+    col: str or :class:`Column`
+        column containing values.
+    """
+    col = str_to_column(col)
+    distinct_values = F.countDistinct(col)
+    null_rows = F.countDistinct(F.when(F.col(col).isNull(), True))
+    return distinct_values + null_rows
