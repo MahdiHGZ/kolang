@@ -151,7 +151,7 @@ def transpose(df: DataFrame,
     return pandas_to_spark(pandas_df)
 
 
-def safe_union(*dfs: DataFrame) -> DataFrame:
+def safe_union(*dfs: Union[DataFrame, List[DataFrame]]) -> DataFrame:
     """
         Union your dataframes with different columns.
 
@@ -182,7 +182,10 @@ def safe_union(*dfs: DataFrame) -> DataFrame:
      |-- col3: string (nullable = true)
     """
     if len(dfs) == 1:
-        return dfs[0]
+        if isinstance(dfs[0], list):
+            dfs = dfs[0]
+        else:
+            return dfs[0]
     if len(dfs) > 2:
         return safe_union(dfs[0], safe_union(*dfs[1:]))
     df1, df2 = dfs[0], dfs[1]
