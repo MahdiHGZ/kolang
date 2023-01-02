@@ -181,11 +181,10 @@ def safe_union(*dfs: Union[DataFrame, List[DataFrame]]) -> DataFrame:
      |-- col2: string (nullable = true)
      |-- col3: string (nullable = true)
     """
+    if len(dfs) == 1 and isinstance(dfs[0], list):
+        dfs = dfs[0]
     if len(dfs) == 1:
-        if isinstance(dfs[0], list):
-            dfs = dfs[0]
-        else:
-            return dfs[0]
+        return dfs[0]
     if len(dfs) > 2:
         return safe_union(dfs[0], safe_union(*dfs[1:]))
     df1, df2 = dfs[0], dfs[1]
