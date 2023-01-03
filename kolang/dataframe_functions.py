@@ -151,20 +151,24 @@ def transpose(df: DataFrame,
     return pandas_to_spark(pandas_df)
 
 
-def safe_union(*dfs: Union[DataFrame, List[DataFrame]]) -> DataFrame:
+def union_all(*dfs: Union[DataFrame, List[DataFrame]],
+              force: bool = False,
+              ) -> DataFrame:
     """
         Union your dataframes with different columns.
 
-    .. versionadded:: 0.4.0
+    .. versionadded:: 1.2.0
     Parameters
     ----------
-    dfs: :class:`DataFrame`
+    dfs: :class:`DataFrame` or list of :class:`DataFrame`
         your dataframes.
+    force: bool, optional (default = False)
+        if be True, it will force to union dataframes with handeling incompatible columns types.
     Examples
     --------
     >>> df1 = spark.createDataFrame([(1, "foo", 4), (2, "bar", 4), ], ["col1", "col2", "col4"])
     >>> df2 = spark.createDataFrame([(3, "foo", "6"), (4, "bar", "4"), ], ["col1", "col3", "col4"])
-    >>> df = safe_union(df1, df2)
+    >>> df = union_all(df1, df2)
     >>> df.show()
     +----+----+----+----+
     |col1|col4|col2|col3|
@@ -196,6 +200,8 @@ def safe_union(*dfs: Union[DataFrame, List[DataFrame]]) -> DataFrame:
     try:
         return df1.unionByName(df2)
     except pyspark.sql.utils.AnalysisException as e:
+        if not force:
+            raise e
         common_columns = columns1.intersection(columns2)
         incompatible_data_types = {
             ('boolean', 'string'): 'string',
@@ -212,6 +218,39 @@ def safe_union(*dfs: Union[DataFrame, List[DataFrame]]) -> DataFrame:
             print(
                 f"Warning: safe_union function handle incompatible data types of this columns: {', '.join(incompatible_columns)}")
         return df1.unionByName(df2)
+
+
+def safe_union(*dfs: Union[DataFrame, List[DataFrame]]) -> DataFrame:
+    """
+        this function will union your all dataframes with handeling incompatible columns types.
+
+    .. versionadded:: 0.4.0
+    Parameters
+    ----------
+    dfs: :class:`DataFrame`
+        your dataframes.
+    Examples
+    --------
+    >>> df1 = spark.createDataFrame([(1, "foo", 4), (2, "bar", 4), ], ["col1", "col2", "col4"])
+    >>> df2 = spark.createDataFrame([(3, "foo", "6"), (4, "bar", "4"), ], ["col1", "col3", "col4"])
+    >>> df = safe_union(df1, df2)
+    >>> df.show()
+    +----+----+----+----+
+    |col1|col4|col2|col3|
+    +----+----+----+----+
+    |   1|   4| foo|null|
+    |   2|   4| bar|null|
+    |   3|   6|null| foo|
+    |   4|   4|null| bar|
+    +----+----+----+----+
+    >>> df.printSchema()
+    root
+     |-- col1: long (nullable = true)
+     |-- col4: string (nullable = true)
+     |-- col2: string (nullable = true)
+     |-- col3: string (nullable = true)
+    """
+    return union_all(*dfs, force=True)
 
 
 def load_or_calculate_parquet(
