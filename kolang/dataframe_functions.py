@@ -151,9 +151,78 @@ def transpose(df: DataFrame,
     return pandas_to_spark(pandas_df)
 
 
-def safe_union(*dfs: DataFrame) -> DataFrame:
+def union_all(*dfs: Union[DataFrame, List[DataFrame]],
+              force: bool = False,
+              ) -> DataFrame:
     """
         Union your dataframes with different columns.
+
+    .. versionadded:: 1.2.0
+    Parameters
+    ----------
+    dfs: :class:`DataFrame` or list of :class:`DataFrame`
+        your dataframes.
+    force: bool, optional (default = False)
+        if be True, it will force to union dataframes with handeling incompatible columns types.
+    Examples
+    --------
+    >>> df1 = spark.createDataFrame([(1, "foo", 4), (2, "bar", 4), ], ["col1", "col2", "col4"])
+    >>> df2 = spark.createDataFrame([(3, "foo", "6"), (4, "bar", "4"), ], ["col1", "col3", "col4"])
+    >>> df = union_all(df1, df2)
+    >>> df.show()
+    +----+----+----+----+
+    |col1|col4|col2|col3|
+    +----+----+----+----+
+    |   1|   4| foo|null|
+    |   2|   4| bar|null|
+    |   3|   6|null| foo|
+    |   4|   4|null| bar|
+    +----+----+----+----+
+    >>> df.printSchema()
+    root
+     |-- col1: long (nullable = true)
+     |-- col4: string (nullable = true)
+     |-- col2: string (nullable = true)
+     |-- col3: string (nullable = true)
+    """
+    if len(dfs) == 1 and isinstance(dfs[0], list):
+        dfs = dfs[0]
+    if len(dfs) == 1:
+        return dfs[0]
+    if len(dfs) > 2:
+        return union_all(dfs[0], union_all(*dfs[1:], force=force), force=force)
+    df1, df2 = dfs[0], dfs[1]
+    columns1 = set(df1.columns)
+    columns2 = set(df2.columns)
+    df1 = df1.select(*columns1, *[F.lit(None).alias(col) for col in (columns2 - columns1)])
+    df2 = df2.select(*columns2, *[F.lit(None).alias(col) for col in (columns1 - columns2)])
+
+    try:
+        return df1.unionByName(df2)
+    except pyspark.sql.utils.AnalysisException as e:
+        if not force:
+            raise e
+        common_columns = columns1.intersection(columns2)
+        incompatible_data_types = {
+            ('boolean', 'string'): 'string',
+            ('array<string>', 'string'): 'string',
+        }
+        incompatible_columns = list()
+        for col in common_columns:
+            for key, val in incompatible_data_types.items():
+                if {df1.schema[col].dataType.simpleString(), df2.schema[col].dataType.simpleString()} == set(key):
+                    df1 = df1.withColumn(col, F.col(col).cast(val))
+                    df2 = df2.withColumn(col, F.col(col).cast(val))
+                    incompatible_columns.append(col)
+        if len(incompatible_columns) > 0:
+            print(
+                f"Warning: safe_union function handle incompatible data types of this columns: {', '.join(incompatible_columns)}")
+        return df1.unionByName(df2)
+
+
+def safe_union(*dfs: Union[DataFrame, List[DataFrame]]) -> DataFrame:
+    """
+        this function will union your all dataframes with handeling incompatible columns types.
 
     .. versionadded:: 0.4.0
     Parameters
@@ -181,35 +250,7 @@ def safe_union(*dfs: DataFrame) -> DataFrame:
      |-- col2: string (nullable = true)
      |-- col3: string (nullable = true)
     """
-    if len(dfs) == 1:
-        return dfs[0]
-    if len(dfs) > 2:
-        return safe_union(dfs[0], safe_union(*dfs[1:]))
-    df1, df2 = dfs[0], dfs[1]
-    columns1 = set(df1.columns)
-    columns2 = set(df2.columns)
-    df1 = df1.select(*columns1, *[F.lit(None).alias(col) for col in (columns2 - columns1)])
-    df2 = df2.select(*columns2, *[F.lit(None).alias(col) for col in (columns1 - columns2)])
-
-    try:
-        return df1.unionByName(df2)
-    except pyspark.sql.utils.AnalysisException as e:
-        common_columns = columns1.intersection(columns2)
-        incompatible_data_types = {
-            ('boolean', 'string'): 'string',
-            ('array<string>', 'string'): 'string',
-        }
-        incompatible_columns = list()
-        for col in common_columns:
-            for key, val in incompatible_data_types.items():
-                if {df1.schema[col].dataType.simpleString(), df2.schema[col].dataType.simpleString()} == set(key):
-                    df1 = df1.withColumn(col, F.col(col).cast(val))
-                    df2 = df2.withColumn(col, F.col(col).cast(val))
-                    incompatible_columns.append(col)
-        if len(incompatible_columns) > 0:
-            print(
-                f"Warning: safe_union function handle incompatible data types of this columns: {', '.join(incompatible_columns)}")
-        return df1.unionByName(df2)
+    return union_all(*dfs, force=True)
 
 
 def load_or_calculate_parquet(
