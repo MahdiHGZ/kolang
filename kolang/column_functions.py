@@ -575,7 +575,7 @@ def cumulative_percent(col: Union[Column, str],
         column containing string.
     on_col: str or :class:`Column`
         order base on this column.
-    ascending: str or :class:`Column`, optional
+    ascending: bool
         type of ordering is ascending. (default = True)
     partition_by: str or :class:`Column` or list of (str or :class:`Column`)
     r: int, optional
@@ -601,7 +601,7 @@ def cumulative_percent(col: Union[Column, str],
     col = str_to_column(col)
     on_col = str_to_column(on_col)
 
-    on_col = on_col if ascending else F.desc(on_col)
+    on_col = on_col if ascending else on_col.desc()
 
     if partition_by is None:
         w_sum = Window.orderBy(on_col)
