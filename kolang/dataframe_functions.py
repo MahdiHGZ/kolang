@@ -190,7 +190,7 @@ def union_all(*dfs: Union[DataFrame, List[DataFrame]],
     if len(dfs) == 1:
         return dfs[0]
     if len(dfs) > 2:
-        return safe_union(dfs[0], safe_union(*dfs[1:]))
+        return union_all(dfs[0], union_all(*dfs[1:], force=force), force=force)
     df1, df2 = dfs[0], dfs[1]
     columns1 = set(df1.columns)
     columns2 = set(df2.columns)
