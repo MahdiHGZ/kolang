@@ -656,3 +656,31 @@ def count_distinct_with_nulls(col: Union[Column, str]) -> Column:
     distinct_values = F.countDistinct(col)
     null_rows = F.countDistinct(F.when(F.col(col).isNull(), True))
     return distinct_values + null_rows
+
+
+@kolang_column_wrapper
+def cube_percent(col: Union[Column, str],
+                 cube_cols: Union[Column, str, List[Union[Column, str]]],
+                 r: int = 2) -> Column:
+    """
+    Aggregate function Returns the percent of cube sum of data.
+
+    .. versionadded:: 1.2.0
+
+    Parameters
+    ----------
+    col: str or :class:`Column`
+        column containing values.
+    cube_cols: str or :class:`Column` or list of (str or :class:`Column`)
+        columns you cube on them.
+    r: int, optional
+        rounding a final result base on this (default = 2)
+    """
+    col = str_to_column(col)
+    condition = F.lit(True)
+    if cube_cols is not isinstance(cube_cols, list):
+        cube_cols = [cube_cols]
+    for cube_col in cube_cols:
+        cube_col = str_to_column(cube_col)
+        condition = condition & cube_col.isNotNull()
+    return F.round(100 * col / F.sum(F.when(condition, col)).over(Window.partitionBy()), r)
