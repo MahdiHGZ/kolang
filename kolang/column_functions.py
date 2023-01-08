@@ -678,7 +678,7 @@ def cube_percent(col: Union[Column, str],
     """
     col = str_to_column(col)
     condition = F.lit(True)
-    if cube_cols is not isinstance(cube_cols, list):
+    if not isinstance(cube_cols, list):
         cube_cols = [cube_cols]
     for cube_col in cube_cols:
         cube_col = str_to_column(cube_col)
