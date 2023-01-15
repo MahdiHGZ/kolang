@@ -578,6 +578,7 @@ def cumulative_percent(col: Union[Column, str],
     ascending: bool
         type of ordering is ascending. (default = True)
     partition_by: str or :class:`Column` or list of (str or :class:`Column`)
+        partition by this column or columns.
     r: int, optional
         rounding a final result base on this (default = 2)
 
@@ -605,7 +606,7 @@ def cumulative_percent(col: Union[Column, str],
 
     if partition_by is None:
         w_sum = Window.orderBy(on_col)
-        w_percent = w = Window.partitionBy()
+        w_percent = Window.partitionBy()
     else:
         w_sum = Window.partitionBy(partition_by).orderBy(on_col)
         w_percent = Window.partitionBy(partition_by)
