@@ -623,6 +623,10 @@ def weighted_average(col: Union[Column, str],
 
     .. versionadded:: 1.1.0
 
+    Notes
+    -----
+    weighted_avg is alias for weighted_average.
+
     Parameters
     ----------
     col: str or :class:`Column`
@@ -698,6 +702,10 @@ def moving_average(col_value: Union[Column, str],
     function Returns the moving average of the values in trend.
 
     .. versionadded:: 1.3.0
+
+    Notes
+    -----
+    moving_avg is alias for moving_average.
 
     Parameters
     ----------
