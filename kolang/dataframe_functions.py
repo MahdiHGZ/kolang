@@ -370,3 +370,73 @@ def load_or_calculate_parquet(
 
     df = spark.read.parquet(path)
     return df
+
+
+def add_trend_line(
+        df: DataFrame,
+        value_col: Union[str, List[str]],
+        date_col: str = 'date',
+        prediction_day: int = 0,
+        cache: bool = True
+) -> DataFrame:
+    """
+    Add trend line to date base data.
+
+    .. versionadded:: 1.0.0
+    Parameters
+    ----------
+    df: DataFrame
+        Your dataframe.
+    value_col: str or list of str
+        Your value column or columns name.
+    date_col: str
+        Your date column.
+    prediction_day: int, optional
+        If prediction_day is greater than 0, it will predict the next days. (default = 0)
+    cache: bool, optional
+        When is True, it will cache the dataframe. (default = True)
+"""
+    from pyspark.ml.regression import LinearRegression
+    from pyspark.ml.feature import VectorAssembler
+
+    spark = SparkSession.builder.getOrCreate()
+    value_cols = [value_col] if isinstance(value_col, str) else value_col
+    regression_feature_col = 'regression_feature_col'
+    regression_features_vector = 'regression_features_vector'
+    if cache:
+        df = df.cache()
+    df = (df
+          .withColumn(date_col, F.col(date_col).cast('date'))
+          .withColumn(regression_feature_col, F.datediff(date_col, F.lit('2022-01-01').cast('date')))
+          )
+    end_date = df.agg(F.max(date_col)).collect()[0][0]
+
+    feature_assembler = VectorAssembler(inputCols=[regression_feature_col], outputCol=regression_features_vector)
+    df = feature_assembler.transform(df)
+
+    regressor = dict()
+    for value_col in value_cols:
+        regressor[value_col] = LinearRegression(featuresCol=regression_features_vector,
+                                                labelCol=value_col,
+                                                predictionCol=f'{value_col}_trendline'
+                                                ).fit(df)
+    if prediction_day > 0:
+        prediction_df = (
+            spark.createDataFrame(
+                pd.DataFrame(pd.date_range(end_date, periods=prediction_day), columns=[date_col])
+            )
+            .withColumn(date_col, F.to_date(date_col))
+            .withColumn(regression_feature_col, F.datediff(date_col, F.lit('2022-01-01').cast('date')))
+        )
+        prediction_df = feature_assembler.transform(prediction_df).drop(regression_feature_col)
+
+        df = df.join(prediction_df, on=[date_col, regression_features_vector], how='full').fillna(0, value_cols)
+
+    for value_col in value_cols:
+        df = (
+            regressor[value_col].evaluate(df).predictions
+            .withColumn(value_col, F.when(F.col(date_col) <= end_date, F.col(value_col)))
+        )
+    result_df = df.drop(regression_feature_col, regression_features_vector)
+
+    return result_df
