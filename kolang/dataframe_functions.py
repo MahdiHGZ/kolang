@@ -382,7 +382,7 @@ def add_trend_line(
     """
     Add trend line to date base data.
 
-    .. versionadded:: 1.0.0
+    .. versionadded:: 1.3.0
     Parameters
     ----------
     df: DataFrame
