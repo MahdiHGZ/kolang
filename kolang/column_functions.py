@@ -697,6 +697,7 @@ def moving_average(col_value: Union[Column, str],
                    order_col: Union[Column, str],
                    period: int,
                    mode: str = 'center',
+                   r: int = None,
                    ) -> Column:
     """
     function Returns the moving average of the values in trend.
@@ -717,6 +718,8 @@ def moving_average(col_value: Union[Column, str],
         window size.
     mode: str, optional
         previous or center or next (default = 'center')
+    r: int, optional
+        rounding a final result base on this (default = None)
     """
     col_value, order_col = str_to_column(col_value, order_col)
     p = period - 1
@@ -726,7 +729,10 @@ def moving_average(col_value: Union[Column, str],
         s, e = -math.ceil(p / 2), math.floor(p / 2)
     elif mode == 'next':
         s, e = 0, p
-    return F.avg(col_value).over(Window.orderBy(order_col).rowsBetween(s, e))
+    mavg = F.avg(col_value).over(Window.orderBy(order_col).rowsBetween(s, e))
+    if r is not None:
+        mavg = F.round(mavg, r)
+    return mavg
 
 
 moving_avg = moving_average
