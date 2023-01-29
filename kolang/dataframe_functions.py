@@ -389,8 +389,8 @@ def add_trend_line(
         Your dataframe.
     value_col: str or list of str
         Your value column or columns name.
-    date_col: str
-        Your date column.
+    date_col: str, optional
+        Your date column. (default = 'date')
     prediction_day: int, optional
         If prediction_day is greater than 0, it will predict the next days. (default = 0)
     cache: bool, optional
