@@ -1,3 +1,4 @@
+import datetime
 import itertools
 import os
 from typing import (TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple,
@@ -377,11 +378,11 @@ def add_trend_line(
         value_col: Union[str, List[str]],
         date_col: str = 'date',
         prediction_day: int = 0,
+        degree: int = 1,
         cache: bool = True
 ) -> DataFrame:
     """
     Add trend line to date base data.
-
     .. versionadded:: 1.3.0
     Parameters
     ----------
@@ -393,26 +394,40 @@ def add_trend_line(
         Your date column. (default = 'date')
     prediction_day: int, optional
         If prediction_day is greater than 0, it will predict the next days. (default = 0)
+    degree: int, optional
+         degree of a polynomial trend line. this must be greater than 0. (default = 1)
     cache: bool, optional
         When is True, it will cache the dataframe. (default = True)
 """
-    from pyspark.ml.regression import LinearRegression
     from pyspark.ml.feature import VectorAssembler
+    from pyspark.ml.regression import LinearRegression
 
     spark = SparkSession.builder.getOrCreate()
+
+    if df.schema[date_col].dataType.simpleString() not in ['date', 'timestamp']:
+        raise ValueError(f'{date_col} must be date or timestamp')
+
     value_cols = [value_col] if isinstance(value_col, str) else value_col
     regression_feature_col = 'regression_feature_col'
+    regression_features_list = [(F.col(regression_feature_col) ** i).alias(f'{regression_feature_col}_d{i}') for i in
+                                range(1, degree + 1)]
+    regression_features_str_list = [f'{regression_feature_col}_d{i}' for i in range(1, degree + 1)]
     regression_features_vector = 'regression_features_vector'
+
     if cache:
         df = df.cache()
-    df = (df
-          .withColumn(date_col, F.col(date_col).cast('date'))
-          .withColumn(regression_feature_col, F.datediff(date_col, F.lit('2022-01-01').cast('date')))
-          )
-    end_date = df.agg(F.max(date_col)).collect()[0][0]
 
-    feature_assembler = VectorAssembler(inputCols=[regression_feature_col], outputCol=regression_features_vector)
-    df = feature_assembler.transform(df)
+    base_df = df = df.withColumn(date_col, F.col(date_col).cast('date'))
+    start_date, end_date = df.agg(F.min(date_col), F.max(date_col)).collect()[0]
+    regression_feature_function = F.datediff(date_col, F.lit(start_date).cast('date'))
+
+    df = (df
+          .withColumn(regression_feature_col, regression_feature_function)
+          .select('*', *regression_features_list)
+          )
+
+    feature_assembler = VectorAssembler(inputCols=regression_features_str_list, outputCol=regression_features_vector)
+    df = feature_assembler.transform(df).drop(regression_feature_col, *regression_features_str_list)
 
     regressor = dict()
     for value_col in value_cols:
@@ -420,23 +435,29 @@ def add_trend_line(
                                                 labelCol=value_col,
                                                 predictionCol=f'{value_col}_trendline'
                                                 ).fit(df)
-    if prediction_day > 0:
-        prediction_df = (
-            spark.createDataFrame(
-                pd.DataFrame(pd.date_range(end_date, periods=prediction_day), columns=[date_col])
-            )
-            .withColumn(date_col, F.to_date(date_col))
-            .withColumn(regression_feature_col, F.datediff(date_col, F.lit('2022-01-01').cast('date')))
-        )
-        prediction_df = feature_assembler.transform(prediction_df).drop(regression_feature_col)
 
-        df = df.join(prediction_df, on=[date_col, regression_features_vector], how='full').fillna(0, value_cols)
+    prediction_df = (
+        spark.createDataFrame(
+            pd.DataFrame(pd.date_range(start_date, end_date + datetime.timedelta(days=prediction_day)),
+                         columns=[date_col])
+        )
+        .withColumn(date_col, F.to_date(date_col))
+        .withColumn(regression_feature_col, regression_feature_function)
+        .select('*', *regression_features_list)
+
+    )
+    prediction_df = (feature_assembler
+                     .transform(prediction_df)
+                     .drop(regression_feature_col, *regression_features_str_list)
+                     )
+
+    df = df.join(prediction_df, on=[date_col, regression_features_vector], how='full').fillna(0, value_cols)
 
     for value_col in value_cols:
-        df = (
-            regressor[value_col].evaluate(df).predictions
-            .withColumn(value_col, F.when(F.col(date_col) <= end_date, F.col(value_col)))
-        )
-    result_df = df.drop(regression_feature_col, regression_features_vector)
+        df = regressor[value_col].evaluate(df).predictions
 
+    result_df = (df
+                 .drop(regression_feature_col, regression_features_vector, *value_cols)
+                 .join(base_df.select(date_col, *value_cols), on=date_col, how='left')
+                 )
     return result_df
