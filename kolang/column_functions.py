@@ -1,36 +1,27 @@
-from typing import (
-    Any,
-    cast,
-    Callable,
-    Dict,
-    List,
-    overload,
-    Optional,
-    Tuple,
-    TYPE_CHECKING,
-    Union,
-    ValuesView,
-)
+import math
+from typing import (TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple,
+                    Union, ValuesView, cast, overload)
 
 import pyspark.sql.functions as F
-from pyspark.sql.window import Window
 from pyspark.sql.column import Column
+from pyspark.sql.window import Window
 
 from kolang.column import kolang_column_wrapper
 
 
 @kolang_column_wrapper
-def col(col: Union[Column, str]) -> Column:
+def col(*cols: Union[Column, str]) -> Union[Tuple[Column], Column]:
     """
         Returns KolangColumn.
     .. versionadded:: 1.0.0
 
     Parameters
     ----------
-    col: str or :class:`Column`
-
+    cols: str or :class:`Column`
     """
-    return F.col(col) if isinstance(col, str) else col
+    if len(cols) == 1:
+        return F.col(cols[0]) if isinstance(cols[0], str) else cols[0]
+    return (F.col(col) if isinstance(col, str) else col for col in cols)
 
 
 str_to_column = col
@@ -306,9 +297,7 @@ def session_id(device_id: Union[Column, str] = 'device_id',
 
     """
     session_time = session_time * 60000
-
-    device_id = str_to_column(device_id)
-    created_at = str_to_column(created_at)
+    device_id, created_at = str_to_column(device_id, created_at)
 
     session_window = Window.partitionBy(device_id).orderBy(created_at)
 
@@ -531,7 +520,7 @@ def sum_columns(cols: List[Union[Column, str]]) -> Column:
     |  4|  3|  8|123|  6| 14| 12|-100|-48| 22|
     +---+---+---+---+---+---+---+----+---+---+
     """
-    cols = list(map(str_to_column, cols))
+    cols = str_to_column(*cols)
     res = F.lit(0)
     for col in cols:
         res = res + col
@@ -585,10 +574,11 @@ def cumulative_percent(col: Union[Column, str],
     col: str or :class:`Column`
         column containing string.
     on_col: str or :class:`Column`
-        order data base on this column.
-    ascending: str or :class:`Column`, optional
+        order base on this column.
+    ascending: bool
         type of ordering is ascending. (default = True)
     partition_by: str or :class:`Column` or list of (str or :class:`Column`)
+        partition by this column or columns.
     r: int, optional
         rounding a final result base on this (default = 2)
 
@@ -609,16 +599,140 @@ def cumulative_percent(col: Union[Column, str],
     |  4|    3|            15|   20.0|             100.0|
     +---+-----+--------------+-------+------------------+
     """
-    col = str_to_column(col)
-    on_col = str_to_column(on_col)
+    col, on_col = str_to_column(col, on_col)
 
-    on_col = on_col if ascending else F.desc(on_col)
+    on_col = on_col if ascending else on_col.desc()
 
     if partition_by is None:
         w_sum = Window.orderBy(on_col)
-        w_percent = w = Window.partitionBy()
+        w_percent = Window.partitionBy()
     else:
         w_sum = Window.partitionBy(partition_by).orderBy(on_col)
         w_percent = Window.partitionBy(partition_by)
 
     return F.round(100 * F.sum(col).over(w_sum) / F.sum(col).over(w_percent), r)
+
+
+@kolang_column_wrapper
+def weighted_average(col: Union[Column, str],
+                     weight: Union[Column, str],
+                     r: int = None
+                     ) -> Column:
+    """
+    Aggregate function Returns the weighted average of the values in a group.
+
+    .. versionadded:: 1.1.0
+
+    Notes
+    -----
+    weighted_avg is alias for weighted_average.
+
+    Parameters
+    ----------
+    col: str or :class:`Column`
+        column containing values.
+    weight: str or :class:`Column`
+        column containing weight values.
+    r: int, optional
+        rounding a final result base on this (default = None)
+    """
+    col, weight = str_to_column(col, weight)
+    final_col = F.sum(col * weight) / F.sum(weight)
+    if r is not None:
+        final_col = F.round(final_col, r)
+    return final_col
+
+
+weighted_avg = weighted_average
+
+
+@kolang_column_wrapper
+def count_distinct_with_nulls(col: Union[Column, str]) -> Column:
+    """
+    Aggregate function Returns the count of distinct values in a group, including nulls.
+
+    .. versionadded:: 1.2.0
+
+    Parameters
+    ----------
+    col: str or :class:`Column`
+        column containing values.
+    """
+    col = str_to_column(col)
+    distinct_values = F.countDistinct(col)
+    null_rows = F.countDistinct(F.when(F.col(col).isNull(), True))
+    return distinct_values + null_rows
+
+
+@kolang_column_wrapper
+def cube_percent(col: Union[Column, str],
+                 cube_cols: Union[Column, str, List[Union[Column, str]]],
+                 r: int = 2) -> Column:
+    """
+    Aggregate function Returns the percent of cube sum of data.
+
+    .. versionadded:: 1.2.0
+
+    Parameters
+    ----------
+    col: str or :class:`Column`
+        column containing values.
+    cube_cols: str or :class:`Column` or list of (str or :class:`Column`)
+        columns you cube on them.
+    r: int, optional
+        rounding a final result base on this (default = 2)
+    """
+    col = str_to_column(col)
+    condition = F.lit(True)
+    if not isinstance(cube_cols, list):
+        cube_cols = [cube_cols]
+    for cube_col in cube_cols:
+        cube_col = str_to_column(cube_col)
+        condition = condition & cube_col.isNotNull()
+    return F.round(100 * col / F.sum(F.when(condition, col)).over(Window.partitionBy()), r)
+
+
+@kolang_column_wrapper
+def moving_average(col_value: Union[Column, str],
+                   order_col: Union[Column, str],
+                   period: int,
+                   mode: str = 'center',
+                   r: int = None,
+                   ) -> Column:
+    """
+    function Returns the moving average of the values in trend.
+
+    .. versionadded:: 1.3.0
+
+    Notes
+    -----
+    moving_avg is alias for moving_average.
+
+    Parameters
+    ----------
+    col_value: str or :class:`Column`
+        column containing values.
+    order_col: str or :class:`Column`
+        column containing order values.
+    period: int
+        window size.
+    mode: str, optional
+        previous or center or next (default = 'center')
+    r: int, optional
+        rounding a final result base on this (default = None)
+    """
+    col_value, order_col = str_to_column(col_value, order_col)
+    p = period - 1
+    if mode == 'previous':
+        s, e = -p, 0
+    elif mode == 'center':
+        s, e = -math.ceil(p / 2), math.floor(p / 2)
+    elif mode == 'next':
+        s, e = 0, p
+    mavg = F.avg(col_value).over(Window.orderBy(order_col).rowsBetween(s, e))
+    if r is not None:
+        mavg = F.round(mavg, r)
+    return mavg
+
+
+moving_avg = moving_average
