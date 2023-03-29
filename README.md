@@ -4,7 +4,11 @@
 
 Kolang is a utils package for work with `pyspark`. 
 
-## insta
+## installation
+
+```bash
+pip install git+https://github.com/MahdiHGZ/kolang.git@v1.3.1
+```
 
 ## Modules
 ### column_functions
